@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@life-sim/shared": [
+        "../shared/src/index.ts"
+      ]
+    },
+    "noEmit": true
+  },
+  "include": [
+    "src/**/*"
+  ]
+}

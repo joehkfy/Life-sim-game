@@ -1,0 +1,21 @@
+---
+description: Life Sim project rules
+alwaysApply: true
+---
+# Life Sim rules
+Persistent multiplayer 3D life sim. Real players only (no AI NPCs that act like players). Monorepo: `client` (React, three, react-three-fiber, zustand, Vite), `server` (Express, Socket.io, Prisma/PostgreSQL, zod), `shared` (types). Hosted on Replit as a Reserved VM, one port.
+
+## Never break these
+- Money is integer dollars (Int columns). Validate with `assertAmount`. Never write absolute balances: use increment/decrement.
+- Any change touching money, items, or ownership runs in `withTx` with row locks (`lockCharacters` etc., sorted order) and atomic claims (`updateMany` with a WHERE guard).
+- Every route validates input with a zod schema in `server/src/util/validation.ts`. Throw `GameError` for player-facing errors; everything else is a generic 500.
+- Adult-only actions call `assertAdult` (`server/src/util/life.ts`).
+- Movement is server-authoritative. Use `relocatePlayer` and the `teleport` socket event, never trust client positions.
+- Start money is a fixed $500. No scaling by exchange rate.
+- Never mint money: construction wages come from escrow.
+- Keep the world small per client: only the player's city loads in 3D.
+
+## Workflow
+- After edits run `npm run typecheck` and `npm test`. Fix errors before moving on.
+- DB change: edit `server/prisma/schema.prisma`, then `npm run db:push`.
+- Don't add new dependencies without saying why.

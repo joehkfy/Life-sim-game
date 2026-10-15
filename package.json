@@ -1,0 +1,33 @@
+{
+  "name": "life-sim",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Persistent multiplayer 3D life simulation game",
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n server,client \"npm run dev -w server\" \"npm run dev -w client\"",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "setup": "npm install && npm run db:generate && npm run db:push && npm run db:seed",
+    "build": "npm run db:generate && npm run build -w client",
+    "start": "npm run start -w server",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
+    "test": "npm test -w server",
+    "smoke": "npm run smoke -w server",
+    "db:generate": "npm run db:generate -w server",
+    "db:push": "npm run db:push -w server",
+    "db:studio": "npm run db:studio -w server",
+    "db:seed": "npm run db:seed -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

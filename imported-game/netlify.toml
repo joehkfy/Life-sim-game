@@ -1,0 +1,14 @@
+# Netlify hosts only the browser client. The game server runs on Railway.
+# In Netlify > Site settings > Environment variables set:
+#   VITE_SERVER_URL = https://YOUR-APP.up.railway.app   (no trailing slash)
+[build]
+  command = "npm install && npm run build -w client"
+  publish = "client/dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -1,0 +1,992 @@
+:root {
+  --bg: #0a0a0f;
+  --panel: rgba(18, 18, 28, 0.92);
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #f0f0f5;
+  --muted: #8888a0;
+  --accent: #6c5ce7;
+  --accent-hover: #7f70f0;
+  --success: #00b894;
+  --danger: #ff6b6b;
+  --warning: #fdcb6e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+input, select, textarea {
+  font-family: inherit;
+}
+
+/* ========== Auth & Character Creation ========== */
+
+.auth-screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 30% 20%, #1a1530 0%, #0a0a0f 60%);
+  color: var(--text);
+}
+
+.auth-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.auth-card h1 {
+  font-size: 1.8rem;
+  margin-bottom: 0.25rem;
+  background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.auth-card .subtitle {
+  color: var(--muted);
+  margin-bottom: 1.75rem;
+  font-size: 0.95rem;
+}
+
+.auth-card label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.auth-card input:focus {
+  border-color: var(--accent);
+}
+
+.auth-card button.primary {
+  width: 100%;
+  padding: 0.8rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  transition: background 0.2s;
+}
+
+.auth-card button.primary:hover {
+  background: var(--accent-hover);
+}
+
+.auth-card button.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-card .switch {
+  text-align: center;
+  margin-top: 1.25rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.auth-card .switch span {
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.auth-card .error {
+  background: rgba(255, 107, 107, 0.15);
+  color: var(--danger);
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Character creation */
+.char-create {
+  max-width: 520px;
+}
+
+.appearance-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.appearance-grid label {
+  margin-bottom: 0.2rem;
+}
+
+.appearance-grid select,
+.appearance-grid input[type="color"] {
+  width: 100%;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+}
+
+/* ========== Game HUD ========== */
+
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.hud > * {
+  pointer-events: auto;
+}
+
+.hud-top {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.hud-stats {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  min-width: 200px;
+  backdrop-filter: blur(12px);
+}
+
+.hud-stats .name {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.stat-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.stat-bar .label {
+  width: 55px;
+  color: var(--muted);
+}
+
+.stat-bar .bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stat-bar .fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.stat-bar .fill.energy { background: #00cec9; }
+.stat-bar .fill.hunger { background: #fdcb6e; }
+.stat-bar .fill.happiness { background: #fd79a8; }
+.stat-bar .fill.health { background: #00b894; }
+.stat-bar .fill.hygiene { background: #74b9ff; }
+
+.hud-money {
+  font-weight: 600;
+  margin-top: 4px;
+  color: #55efc4;
+}
+
+.hud-time {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 16px;
+  backdrop-filter: blur(12px);
+  text-align: right;
+}
+
+/* Chat */
+.chat-box {
+  position: absolute;
+  bottom: 20px;
+  left: 16px;
+  width: 340px;
+  max-width: calc(100% - 32px);
+}
+
+.chat-messages {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px 12px 0 0;
+  padding: 10px;
+  max-height: 160px;
+  overflow-y: auto;
+  backdrop-filter: blur(12px);
+  font-size: 13px;
+}
+
+.chat-msg {
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.chat-msg .sender {
+  font-weight: 600;
+  color: #a29bfe;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 0;
+}
+
+.chat-input-row input {
+  flex: 1;
+  padding: 10px 12px;
+  background: rgba(18, 18, 28, 0.95);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 0 12px;
+  color: var(--text);
+  outline: none;
+  font-size: 14px;
+}
+
+.chat-input-row button {
+  padding: 10px 16px;
+  background: var(--accent);
+  border: none;
+  border-radius: 0 0 12px 0;
+  color: white;
+  font-weight: 600;
+}
+
+/* Mobile controls hint */
+.controls-hint {
+  position: absolute;
+  bottom: 20px;
+  right: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  backdrop-filter: blur(12px);
+}
+
+@media (max-width: 600px) {
+  .hud-stats { min-width: 160px; font-size: 12px; }
+  .chat-box { width: calc(100% - 32px); }
+  .controls-hint { display: none; }
+}
+
+/* ========== In-game Phone ========== */
+
+.phone-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  padding: 12px;
+}
+
+.phone-device {
+  width: min(360px, 94vw);
+  height: min(680px, 92vh);
+  background: #0d0d14;
+  border-radius: 36px;
+  border: 3px solid #2a2a3a;
+  box-shadow: 0 0 0 2px #1a1a24, 0 25px 80px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.phone-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px 4px;
+  font-size: 11px;
+  color: #ccc;
+  position: relative;
+  z-index: 2;
+}
+
+.phone-notch {
+  width: 90px;
+  height: 22px;
+  background: #000;
+  border-radius: 0 0 14px 14px;
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.phone-screen {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, #1a1530 0%, #0f0f18 50%, #12121f 100%);
+}
+
+.phone-home {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px 8px;
+}
+
+.phone-home-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  margin-top: 8px;
+}
+
+.phone-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  color: #fff;
+}
+
+.phone-home-name {
+  font-weight: 700;
+  font-size: 16px;
+  color: #fff;
+}
+
+.phone-home-sub {
+  font-size: 12px;
+  color: #8888a0;
+}
+
+.phone-app-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px 8px;
+  flex: 1;
+  align-content: start;
+}
+
+.phone-app-icon {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: #e8e8f0;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.phone-app-bubble {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.phone-dock {
+  display: flex;
+  justify-content: space-around;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 10px 8px;
+  margin-top: auto;
+}
+
+.phone-home-bar {
+  width: 120px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 3px;
+  border: none;
+  margin: 8px auto 12px;
+  cursor: pointer;
+  display: block;
+}
+
+/* App chrome */
+.phone-app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #f0f0f5;
+}
+
+.phone-app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.phone-back {
+  background: none;
+  border: none;
+  color: #a29bfe;
+  font-size: 28px;
+  line-height: 1;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+.phone-header-action {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.phone-app-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.phone-empty {
+  color: #8888a0;
+  font-size: 13px;
+  text-align: center;
+  padding: 20px 8px;
+}
+
+.phone-toast {
+  background: rgba(108, 92, 231, 0.25);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.phone-section {
+  font-size: 12px;
+  color: #8888a0;
+  margin: 12px 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.phone-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  width: 100%;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.phone-row-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #6c5ce7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.phone-row-text { flex: 1; min-width: 0; }
+.phone-row-title { font-weight: 600; font-size: 14px; }
+.phone-row-sub { font-size: 12px; color: #8888a0; }
+
+.phone-mini-btn {
+  padding: 6px 10px;
+  background: #6c5ce7;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+}
+.phone-mini-btn.ok { background: #00b894; }
+.phone-mini-btn.bad { background: #ff6b6b; }
+
+.phone-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.phone-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  margin-bottom: 8px;
+  outline: none;
+}
+
+.phone-btn {
+  padding: 10px 14px;
+  background: #6c5ce7;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.phone-btn.ok { background: #00b894; }
+.phone-btn.bad { background: #ff6b6b; }
+.phone-btn.full { width: 100%; margin-top: 8px; }
+.phone-btn-row { display: flex; gap: 8px; }
+.phone-btn-row .phone-btn { flex: 1; }
+
+.phone-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.phone-chip {
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 16px;
+  color: #ddd;
+  font-size: 12px;
+  cursor: pointer;
+}
+.phone-chip.active { background: #6c5ce7; color: #fff; }
+
+.phone-search-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.phone-search-row input {
+  flex: 1;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  outline: none;
+}
+.phone-search-row button {
+  padding: 8px 12px;
+  background: #6c5ce7;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.bank-card {
+  background: linear-gradient(135deg, #2d1b4e, #1a2744);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.bank-label { font-size: 11px; color: #8888a0; margin-top: 4px; }
+.bank-value { font-size: 24px; font-weight: 700; }
+.bank-value.cash { color: #55efc4; }
+.bank-value.bank { color: #74b9ff; }
+
+.phone-chat-log {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 200px;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.phone-bubble {
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  word-break: break-word;
+}
+.phone-bubble.mine {
+  align-self: flex-end;
+  background: #6c5ce7;
+  border-bottom-right-radius: 4px;
+}
+.phone-bubble.theirs {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom-left-radius: 4px;
+}
+.phone-chat-input {
+  display: flex;
+  gap: 6px;
+}
+.phone-chat-input input {
+  flex: 1;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #fff;
+  outline: none;
+}
+.phone-chat-input button {
+  padding: 10px 14px;
+  background: #6c5ce7;
+  border: none;
+  border-radius: 20px;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Map */
+.map-body { display: flex; flex-direction: column; gap: 10px; }
+.map-canvas {
+  position: relative;
+  margin: 0 auto;
+  background: #1e3a2f;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.map-grid { position: absolute; inset: 0; pointer-events: none; }
+.map-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 20, 30, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  z-index: 2;
+}
+.map-marker.selected {
+  border-color: #a29bfe;
+  box-shadow: 0 0 0 2px rgba(162, 155, 254, 0.4);
+  z-index: 3;
+}
+.map-player-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  border: 2px solid #fff;
+}
+.map-player-dot.you {
+  background: #0984e3;
+  box-shadow: 0 0 0 4px rgba(9, 132, 227, 0.35);
+  width: 14px;
+  height: 14px;
+}
+.map-player-dot.other { background: #a29bfe; }
+.map-info {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.map-info-title { font-weight: 600; font-size: 14px; }
+.map-info-sub { font-size: 12px; color: #8888a0; margin-top: 2px; }
+.map-info-coords { font-size: 11px; color: #666; margin-top: 4px; }
+.map-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.map-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: #ddd;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+.map-list-item.active { background: rgba(108, 92, 231, 0.3); }
+
+/* Phone open button in HUD area */
+.phone-fab {
+  position: absolute;
+  bottom: 200px;
+  right: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2d2d44, #1a1a28);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  font-size: 26px;
+  cursor: pointer;
+  z-index: 20;
+  pointer-events: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 600px) {
+  .phone-device {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    border: none;
+  }
+  .phone-fab {
+    bottom: 160px;
+    right: 12px;
+  }
+}
+
+.map-viewport {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.map-world {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.05s linear;
+}
+
+.map-canvas {
+  position: relative;
+  overflow: hidden;
+  background: #1a3328;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  touch-action: none;
+}
+
+.map-marker.nav {
+  border-color: #fdcb6e;
+  box-shadow: 0 0 0 2px rgba(253, 203, 110, 0.5);
+}
+
+.map-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  font-size: 16px;
+  z-index: 5;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+}
+
+.map-nav-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.map-controls {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 6;
+}
+
+.map-controls button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(20, 20, 30, 0.85);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.map-nav-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(108, 92, 231, 0.35);
+  border: 1px solid rgba(162, 155, 254, 0.4);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.map-nav-banner.arrived {
+  background: rgba(0, 184, 148, 0.35);
+  border-color: rgba(0, 184, 148, 0.5);
+}
+
+.map-nav-banner button {
+  background: rgba(0, 0, 0, 0.3);
+  border: none;
+  color: #fff;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.map-list-item.nav {
+  background: rgba(253, 203, 110, 0.15);
+}
+
+.world-map {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0a2540;
+  border: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 8px;
+}
+
+.world-ocean {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 30% 40%, rgba(30,90,60,0.35) 0%, transparent 40%),
+    radial-gradient(ellipse at 70% 35%, rgba(40,80,50,0.3) 0%, transparent 35%),
+    radial-gradient(ellipse at 50% 70%, rgba(35,70,45,0.25) 0%, transparent 40%),
+    linear-gradient(180deg, #0a2540 0%, #0d3a5c 100%);
+}
+
+.world-country {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 20, 35, 0.85);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  color: #fff;
+  z-index: 2;
+}
+
+.world-country:active,
+.world-country:hover {
+  border-color: #a29bfe;
+  background: rgba(108, 92, 231, 0.4);
+}
+
+.world-flag { font-size: 18px; line-height: 1; }
+.world-name { font-size: 9px; font-weight: 600; max-width: 64px; text-align: center; }
+
+.map-plot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: rgba(253, 203, 110, 0.25);
+  border: 1px dashed rgba(253, 203, 110, 0.7);
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  z-index: 2;
+}
+
+.map-plot.selected {
+  border-style: solid;
+  border-color: #fdcb6e;
+  box-shadow: 0 0 0 2px rgba(253, 203, 110, 0.4);
+}
+
+.map-marker.player-built {
+  border-color: #55efc4;
+  background: rgba(0, 40, 30, 0.9);
+}

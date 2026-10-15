@@ -1,0 +1,592 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(uuid())
+  username     String     @unique
+  email        String     @unique
+  passwordHash String
+  createdAt    DateTime   @default(now())
+  lastLogin    DateTime?
+  character    Character?
+  isAdmin      Boolean    @default(false)
+
+  @@map("users")
+}
+
+model Character {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name           String
+  age            Int      @default(18)
+  lifeStage      String   @default("adult") // child | teen | adult
+  personality    String   @default("friendly")
+  appearance     Json
+
+  posX           Float    @default(0)
+  posY           Float    @default(0)
+  posZ           Float    @default(0)
+  rotationY      Float    @default(0)
+  location       String   @default("city")
+  countryCode    String   @default("NG")
+  stateCode      String   @default("")
+  cityKey        String   @default("lagos")
+
+  energy         Float    @default(100)
+  hunger         Float    @default(20)
+  happiness      Float    @default(70)
+  hygiene        Float    @default(100)
+  health         Float    @default(100)
+  money          Int      @default(500)
+  bankBalance    Int      @default(0)
+
+  intelligence   Float    @default(10)
+  strength       Float    @default(10)
+  charisma       Float    @default(10)
+  creativity     Float    @default(10)
+  cooking        Float    @default(5)
+  fitness        Float    @default(10)
+
+  jobId          String?
+  jobLevel       Int      @default(1)
+  jobXp          Float    @default(0)
+  educationLevel String   @default("none")
+  homeId         String?
+
+  inventory      Json     @default("[]")
+  equipped       Json     @default("{}")
+
+  createdAt      DateTime @default(now())
+  lastLogin      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  relationshipsFrom Relationship[] @relation("FromCharacter")
+  relationshipsTo   Relationship[] @relation("ToCharacter")
+  messagesSent      Message[]      @relation("SentMessages")
+  messagesReceived  Message[]      @relation("ReceivedMessages")
+  job               Job?           @relation(fields: [jobId], references: [id])
+
+  friendRequestsSent     FriendRequest[] @relation("RequestsSent")
+  friendRequestsReceived FriendRequest[] @relation("RequestsReceived")
+  friendshipsA           Friendship[]    @relation("FriendA")
+  friendshipsB           Friendship[]    @relation("FriendB")
+
+  @@index([jobId])
+  @@map("characters")
+}
+
+model FriendRequest {
+  id         String   @id @default(uuid())
+  fromId     String
+  toId       String
+  status     String   @default("pending") // pending | accepted | rejected
+  createdAt  DateTime @default(now())
+
+  from Character @relation("RequestsSent", fields: [fromId], references: [id], onDelete: Cascade)
+  to   Character @relation("RequestsReceived", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId])
+  @@index([toId, status])
+  @@map("friend_requests")
+}
+
+model Friendship {
+  id        String   @id @default(uuid())
+  aId       String
+  bId       String
+  createdAt DateTime @default(now())
+
+  a Character @relation("FriendA", fields: [aId], references: [id], onDelete: Cascade)
+  b Character @relation("FriendB", fields: [bId], references: [id], onDelete: Cascade)
+
+  @@unique([aId, bId])
+  @@index([bId])
+  @@map("friendships")
+}
+
+model Item {
+  id          String  @id @default(uuid())
+  key         String  @unique
+  name        String
+  description String
+  category    String
+  price       Int  
+  stackable   Boolean @default(true)
+  maxStack    Int     @default(99)
+  effects     Json    @default("{}")
+  slot        String?
+  icon        String  @default("📦")
+
+  @@map("items")
+}
+
+model Shop {
+  id          String  @id @default(uuid())
+  key         String  @unique
+  name        String
+  description String
+  location    String
+  posX        Float
+  posY        Float   @default(0)
+  posZ        Float
+  items       Json
+
+  @@map("shops")
+}
+
+model Relationship {
+  id              String   @id @default(uuid())
+  fromCharacterId String
+  toCharacterId   String
+  type            String   @default("stranger")
+  value           Float    @default(0)
+  memories        Json     @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  fromCharacter Character @relation("FromCharacter", fields: [fromCharacterId], references: [id], onDelete: Cascade)
+  toCharacter   Character @relation("ToCharacter", fields: [toCharacterId], references: [id], onDelete: Cascade)
+
+  @@unique([fromCharacterId, toCharacterId])
+  @@map("relationships")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  fromId    String
+  toId      String?
+  channel   String
+  content   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  from Character  @relation("SentMessages", fields: [fromId], references: [id], onDelete: Cascade)
+  to   Character? @relation("ReceivedMessages", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@index([channel, fromId, toId, createdAt])
+  @@map("messages")
+}
+
+model WorldState {
+  id        String   @id @default("global")
+  gameTime  Float    @default(8)
+  day       Int      @default(1)
+  weather   String   @default("sunny")
+  updatedAt DateTime @updatedAt
+
+  @@map("world_state")
+}
+
+model Job {
+  id           String      @id @default(uuid())
+  name         String      @unique
+  description  String
+  basePay      Int  
+  requirements Json
+  schedule     Json
+  location     String      @default("city")
+  maxLevel     Int         @default(5)
+  category     String      @default("general") // transport, medical, construction, etc.
+  characters   Character[]
+
+  @@map("jobs")
+}
+
+model Property {
+  id            String  @id @default(uuid())
+  name          String
+  type          String
+  price         Int  
+  rent          Int  
+  posX          Float
+  posY          Float
+  posZ          Float
+  ownerId       String?
+  tenantId      String?
+  cityKey       String  @default("lagos")
+  isStarterHome Boolean @default(false)
+  interiorKey   String  @default("apartment_basic")
+  furniture     Json    @default("[]")
+
+  @@index([cityKey])
+  @@index([ownerId])
+  @@index([tenantId])
+  @@map("properties")
+}
+
+model BankTransaction {
+  id          String   @id @default(uuid())
+  characterId String
+  type        String   // deposit | withdraw | transfer_in | transfer_out | salary
+  amount      Int  
+  note        String?
+  relatedId   String?  // other character id for transfers
+  createdAt   DateTime @default(now())
+
+  @@index([characterId, createdAt])
+  @@map("bank_transactions")
+}
+
+// ========== World hierarchy: Country → State → City ==========
+
+model Country {
+  id             String   @id @default(uuid())
+  code           String   @unique
+  name           String
+  flag           String   @default("🌍")
+  currencyCode   String   @default("USD")
+  currencySymbol String   @default("$")
+  exchangeToUsd  Float    @default(1)
+  mapX           Float    @default(50)
+  mapY           Float    @default(50)
+  states         State[]
+  cities         City[]
+
+  @@map("countries")
+}
+
+model State {
+  id          String   @id @default(uuid())
+  countryId   String
+  country     Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  code        String   // e.g. LA for Lagos State, CA for California
+  name        String
+  mapX        Float    @default(50)
+  mapY        Float    @default(50)
+  cities      City[]
+
+  @@unique([countryId, code])
+  @@index([countryId])
+  @@map("states")
+}
+
+model City {
+  id          String   @id @default(uuid())
+  countryId   String
+  country     Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  stateId     String?
+  state       State?   @relation(fields: [stateId], references: [id], onDelete: SetNull)
+  key         String   @unique
+  name        String
+  mapX        Float    @default(50)
+  mapY        Float    @default(50)
+  districtKey String   @default("downtown")
+  plots       BuildPlot[]
+  buildings   PlayerBuilding[]
+
+  @@index([countryId])
+  @@index([stateId])
+  @@map("cities")
+}
+
+model BuildPlot {
+  id        String  @id @default(uuid())
+  cityId    String
+  city      City    @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  name      String
+  // Position in city 3D coords
+  posX      Float
+  posZ      Float
+  size      Float   @default(8)
+  price     Int  
+  ownerId   String? // character id
+  building  PlayerBuilding?
+
+  @@index([cityId])
+  @@index([ownerId])
+  @@map("build_plots")
+}
+
+model PlayerBuilding {
+  id          String  @id @default(uuid())
+  cityId      String
+  city        City    @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  plotId      String  @unique
+  plot        BuildPlot @relation(fields: [plotId], references: [id], onDelete: Cascade)
+  ownerId     String  // character id
+  name        String
+  buildingType String // house, shop, cafe, office, club, studio
+  color       String  @default("#6c5ce7")
+  level       Int     @default(1)
+  interiorKey String  @default("house_basic")
+  // Shown on city map
+  posX        Float
+  posZ        Float
+  createdAt   DateTime @default(now())
+
+  @@index([cityId])
+  @@index([ownerId])
+  @@map("player_buildings")
+}
+
+
+// Construction: hire real player workers to build
+model ConstructionProject {
+  id            String   @id @default(uuid())
+  plotId        String
+  cityId        String
+  ownerId       String   // character who ordered the build
+  name          String
+  buildingType  String
+  status        String   @default("hiring") // hiring | in_progress | complete | cancelled
+  progress      Float    @default(0) // 0-100
+  materialsPaid Int      @default(0) // TOTAL escrow held from the owner (materials + labour)
+  posX          Float
+  posZ          Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  roles         ConstructionRole[]
+
+  @@index([status, cityId])
+  @@index([ownerId])
+  @@index([plotId, status])
+  @@map("construction_projects")
+}
+
+model ConstructionRole {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     ConstructionProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  roleKey     String   // bricklayer, carpenter, electrician, plumber, painter
+  roleName    String
+  pay         Int      // paid to worker when their part is done
+  requiredXp  Float    @default(20) // work points needed
+  progress    Float    @default(0)
+  workerId    String?  // character id who accepted
+  status      String   @default("open") // open | filled | done
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+  @@index([workerId, status])
+  @@map("construction_roles")
+}
+
+
+model Notification {
+  id          String   @id @default(uuid())
+  characterId String
+  title       String
+  body        String
+  type        String   @default("info") // info | money | social | job | build | market
+  read        Boolean  @default(false)
+  data        Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  @@index([characterId, read])
+  @@map("notifications")
+}
+
+model MarketListing {
+  id          String   @id @default(uuid())
+  sellerId    String   // character id
+  itemKey     String
+  quantity    Int      @default(1)
+  priceEach   Int  
+  status      String   @default("active") // active | sold | cancelled
+  cityKey     String   @default("starter")
+  createdAt   DateTime @default(now())
+
+  @@index([status, cityKey])
+  @@index([sellerId, status])
+  @@map("market_listings")
+}
+
+
+model Airport {
+  id          String  @id @default(uuid())
+  countryId   String
+  code        String  @unique  // LOS, JFK, LHR
+  name        String
+  cityKey     String  // linked playable city or nearest
+  // Position in that city's 3D district
+  posX        Float   @default(35)
+  posZ        Float   @default(-35)
+  international Boolean @default(true)
+  size        String  @default("medium") // small | medium | large | hub
+
+  @@map("airports")
+}
+
+model TrainStation {
+  id        String @id @default(uuid())
+  countryId String
+  code      String @unique
+  name      String
+  cityKey   String
+  posX      Float  @default(-35)
+  posZ      Float  @default(35)
+
+  @@map("train_stations")
+}
+
+model TravelRoute {
+  id            String  @id @default(uuid())
+  fromCityKey   String
+  toCityKey     String
+  mode          String  // plane | train | bus
+  durationMins  Int     // game-minutes (abstract)
+  price         Int  
+  fromHubCode   String? // airport or station code
+  toHubCode     String?
+
+  @@index([fromCityKey, mode])
+  @@map("travel_routes")
+}
+
+
+// ========== Player businesses, hiring, vehicles, school, competitions ==========
+
+model Business {
+  id            String   @id @default(uuid())
+  ownerId       String   // character id
+  buildingId    String?  // player building id if any
+  name          String
+  type          String   // restaurant, shop, cafe, club, gym, clinic, taxi, hotel, company
+  description   String   @default("")
+  cityKey       String   @default("starter")
+  posX          Float    @default(0)
+  posZ          Float    @default(0)
+  open          Boolean  @default(true)
+  balance       Int      @default(0)  // business cash drawer
+  totalRevenue  Int      @default(0)
+  createdAt     DateTime @default(now())
+  posts         BusinessJobPost[]
+  employees     BusinessEmployee[]
+  products      BusinessProduct[]
+
+  @@index([ownerId])
+  @@index([cityKey])
+  @@map("businesses")
+}
+
+model BusinessJobPost {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  title       String   // Cashier, Chef, Security...
+  roleKey     String   // cashier, chef, security, manager, driver
+  salary      Int      // per shift
+  minSkill    String?  // cooking | strength | etc
+  minSkillVal Float    @default(0)
+  open        Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([businessId, open])
+  @@map("business_job_posts")
+}
+
+model BusinessEmployee {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  characterId String
+  roleKey     String
+  title       String
+  salary      Int  
+  hiredAt     DateTime @default(now())
+  active      Boolean  @default(true)
+
+  @@unique([businessId, characterId])
+  @@index([characterId, active])
+  @@map("business_employees")
+}
+
+model BusinessProduct {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name        String
+  price       Int  
+  stock       Int      @default(50)
+  skillBoost  String?  // optional skill granted to buyer on consume
+  skillAmount Float    @default(0)
+
+  @@index([businessId])
+  @@map("business_products")
+}
+
+model Vehicle {
+  id          String   @id @default(uuid())
+  ownerId     String
+  type        String   // bike, motorbike, car, sports_car
+  name        String
+  color       String   @default("#2980b9")
+  speed       Float    @default(12)
+  posX        Float    @default(0)
+  posZ        Float    @default(0)
+  cityKey     String   @default("starter")
+  stored      Boolean  @default(false)
+
+  @@index([ownerId])
+  @@map("vehicles")
+}
+
+model Course {
+  id          String @id @default(uuid())
+  key         String @unique
+  name        String
+  description String
+  skill       String // intelligence, cooking, fitness...
+  skillGain   Float
+  cost        Int  
+  duration    Int    // number of attend sessions needed
+  minSkill    Float  @default(0)
+  location    String @default("school")
+
+  @@map("courses")
+}
+
+model CourseProgress {
+  id          String   @id @default(uuid())
+  characterId String
+  courseKey   String
+  sessions    Int      @default(0)
+  completed   Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([characterId, courseKey])
+  @@map("course_progress")
+}
+
+model Competition {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  name        String
+  type        String   // race, sports, skill
+  skill       String?  // fitness, strength, etc
+  entryFee    Int      @default(0)
+  prizePool   Int      @default(0)
+  status      String   @default("open") // open | closed (a closed round is reopened automatically)
+  round       Int      @default(1)
+  closesAt    DateTime? // set when the first player enters a round
+  lastWinner  String?
+  lastPrize   Int      @default(0)
+  cityKey     String   @default("starter")
+  createdAt   DateTime @default(now())
+  entries     CompetitionEntry[]
+
+  @@index([status, closesAt])
+  @@map("competitions")
+}
+
+model CompetitionEntry {
+  id             String @id @default(uuid())
+  competitionId  String
+  competition    Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  characterId    String
+  characterName  String
+  score          Float  @default(0)
+  rank           Int?
+
+  @@unique([competitionId, characterId])
+  @@index([competitionId])
+  @@map("competition_entries")
+}
