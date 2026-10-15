@@ -99,7 +99,7 @@ export async function createCharacter(userId: string, data: CreateCharacterReque
     // One transaction + a per-city advisory lock: two simultaneous sign-ups can't get the same starter-home plot.
     const character = await prisma.$transaction(
       async (tx) => {
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`starter-home:${cityKey}`}))`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`starter-home:${cityKey}`}))`;
 
         const existing = await tx.character.findUnique({ where: { userId } });
         if (existing) throw new GameError("You already have a character");
