@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useAnimations, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { SkeletonUtils } from "three/examples/jsm/utils/SkeletonUtils.js";
+import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { CharacterAppearance } from "@life-sim/shared";
 
 const MODEL_URL = "/models/characters/life-sim-donghua-base.glb";
