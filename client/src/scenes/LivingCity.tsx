@@ -44,15 +44,16 @@ interface ResidentSummary {
 }
 
 const ROAD_COORDS = [-35, -21, -7, 7, 21, 35] as const;
+// Targets match shared BUILDINGS so NPC paths and enterable landmarks stay aligned.
 const DESTINATIONS: Record<DestinationKey, { target: [number, number, number]; road: [number, number]; name: string }> = {
-  home: { target: [20, 0, -1], road: [21, -7], name: "Apartments" },
-  shop: { target: [-18, 0, 20], road: [-21, 21], name: "General Store" },
-  restaurant: { target: [18, 0, 18], road: [21, 21], name: "Restaurant" },
-  school: { target: [-25, 0, -14], road: [-21, -21], name: "School" },
-  university: { target: [30, 0, -18], road: [35, -21], name: "University" },
-  hospital: { target: [-30, 0, 32], road: [-35, 35], name: "Hospital" },
-  police: { target: [25, 0, 33], road: [35, 35], name: "Police Station" },
-  gym: { target: [-22, 0, 1], road: [-21, -7], name: "Gym" },
+  home: { target: [20, 0, -8], road: [21, -7], name: "Apartments" },
+  shop: { target: [-18, 0, 15], road: [-21, 14], name: "General Store" },
+  restaurant: { target: [18, 0, 12], road: [21, 14], name: "Restaurant" },
+  school: { target: [-25, 0, -20], road: [-21, -21], name: "School" },
+  university: { target: [30, 0, -25], road: [35, -21], name: "University" },
+  hospital: { target: [-30, 0, 25], road: [-35, 21], name: "Hospital" },
+  police: { target: [25, 0, 28], road: [35, 21], name: "Police Station" },
+  gym: { target: [-22, 0, -5], road: [-21, -7], name: "Gym" },
   park: { target: [0, 0, 0], road: [-7, -7], name: "Central Park" },
 };
 
@@ -332,6 +333,8 @@ interface TrafficConfig {
 }
 
 function carConfigs(mobile: boolean): TrafficConfig[] {
+  // lane = fixed X when driving N/S (axis z), fixed Z when driving E/W (axis x).
+  // Stay on painted roads: main cross (±1.65) and local streets at ±21 (City.tsx).
   const base: TrafficConfig[] = [
     { id: "z-north-1", axis: "z" as const, direction: 1 as const, lane: -1.65, start: -88, speed: 6.7, color: "#d85149" },
     { id: "z-south-1", axis: "z" as const, direction: -1 as const, lane: 1.65, start: 90, speed: 7.4, color: "#e5e8ed" },
@@ -343,8 +346,12 @@ function carConfigs(mobile: boolean): TrafficConfig[] {
     { id: "x-west-2", axis: "x" as const, direction: -1 as const, lane: -1.65, start: 53, speed: 7.5, color: "#454b55", kind: "car" as const },
     { id: "city-taxi", axis: "z" as const, direction: 1 as const, lane: 1.65, start: -24, speed: 4.8, color: "#eabd3d", kind: "taxi" as const },
     { id: "city-bus", axis: "x" as const, direction: -1 as const, lane: 1.65, start: 30, speed: 4.2, color: "#3b7e9c", kind: "bus" as const },
+    { id: "z-local-w", axis: "z" as const, direction: 1 as const, lane: -21, start: -70, speed: 5.5, color: "#6a8fad" },
+    { id: "z-local-e", axis: "z" as const, direction: -1 as const, lane: 21, start: 62, speed: 5.8, color: "#c47a5a" },
+    { id: "x-local-n", axis: "x" as const, direction: 1 as const, lane: -21, start: -66, speed: 5.4, color: "#7a9b6e" },
+    { id: "x-local-s", axis: "x" as const, direction: -1 as const, lane: 21, start: 58, speed: 5.6, color: "#8b7bb0" },
   ];
-  return mobile ? base.filter((_, i) => [0, 2, 8, 9].includes(i)) : base;
+  return mobile ? base.filter((_, i) => [0, 2, 8, 9, 10].includes(i)) : base;
 }
 
 function trafficState(worldTime: number) {

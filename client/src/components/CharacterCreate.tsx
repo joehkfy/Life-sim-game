@@ -183,6 +183,22 @@ export function CharacterCreate() {
                 {FACE_PRESETS.map((f, i) => <option key={f} value={i}>{f}</option>)}
               </select>
             </div>
+            <div>
+              <label>Shirt style</label>
+              <select value={appearance.clothingTop} onChange={(e) => setAppearance({ ...appearance, clothingTop: parseInt(e.target.value) })}>
+                {["Blue", "Red", "Green", "Purple", "Gold", "Cyan", "Pink", "Gray", "Navy", "White", "Black", "Orange", "Teal", "Violet", "Crimson", "Lime"].map((label, i) => (
+                  <option key={label} value={i}>{label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Pants style</label>
+              <select value={appearance.clothingBottom} onChange={(e) => setAppearance({ ...appearance, clothingBottom: parseInt(e.target.value) })}>
+                {["Slate", "Gray", "Black", "Zinc", "Blue jeans", "Green", "Brown", "Purple", "Stone", "Taupe", "Indigo", "Forest", "Warm gray", "Olive", "Wine", "Teal"].map((label, i) => (
+                  <option key={label} value={i}>{label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <button className="primary" type="submit" disabled={loading} style={{ marginTop: 16, width: "100%" }}>

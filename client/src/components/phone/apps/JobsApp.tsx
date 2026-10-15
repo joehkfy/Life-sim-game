@@ -23,6 +23,9 @@ export function JobsApp({ onBack }: { onBack: () => void }) {
     if (!r.ok) setMsg(d.error || "Failed");
     else {
       setMsg(d.message || "OK");
+      if (path.includes("/jobs/work")) {
+        window.dispatchEvent(new Event("life-sim:worked-shift"));
+      }
       const cr = await fetch(`${API}/api/game/character`, { headers });
       if (cr.ok) setCharacter(await cr.json());
     }
@@ -45,13 +48,16 @@ export function JobsApp({ onBack }: { onBack: () => void }) {
             <div className="bank-label">Current job</div>
             <div className="bank-value" style={{ fontSize: 18 }}>{current.name}</div>
             <div style={{ fontSize: 12, opacity: 0.7 }}>Level {character.jobLevel} · XP {character.jobXp}</div>
+            <div style={{ fontSize: 11, opacity: 0.75, marginTop: 6, lineHeight: 1.35 }}>
+              Needs energy ≥ 20 and hunger not too high. Pay goes to your bank.
+            </div>
             <div className="phone-btn-row" style={{ marginTop: 10 }}>
               <button className="phone-btn ok" onClick={() => act("/api/game/jobs/work")}>Work shift (pay → bank)</button>
               <button className="phone-btn bad" onClick={() => act("/api/game/jobs/quit")}>Quit</button>
             </div>
           </div>
         ) : (
-          <p className="phone-empty">No job — apply below</p>
+          <p className="phone-empty">No job yet — pick one below, then work a shift to earn money.</p>
         )}
         {(() => {
           const cats = Array.from(new Set(jobs.map((j: any) => j.category).filter(Boolean)));

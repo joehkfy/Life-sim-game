@@ -3,8 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { PublicCharacter } from "@life-sim/shared";
 import { Text } from "@react-three/drei";
-import { shirtFromAppearance } from "./Avatar";
-import { RiggedAvatar } from "./RiggedAvatar";
+import { Avatar, shirtFromAppearance, pantsFromAppearance } from "./Avatar";
 
 interface OtherPlayerProps {
   player: PublicCharacter;
@@ -36,21 +35,27 @@ export function OtherPlayer({ player }: OtherPlayerProps) {
     hairColor: "#3d2314",
   };
   const shirt = shirtFromAppearance(appearance, player.name?.length || 0);
+  const pants = pantsFromAppearance(appearance, player.name?.length || 1);
 
   return (
     <group ref={group} position={[player.position.x, player.position.y, player.position.z]}>
-      <RiggedAvatar appearance={appearance} shirtColor={shirt} pantsColor="#334155" animation={player.animation || "idle"} />
+      <Avatar appearance={appearance} shirtColor={shirt} pantsColor={pants} animation={player.animation || "idle"} showFace />
+      {/* Nameplate — larger + soft glow so other players are easy to spot */}
       <Text
-        position={[0, 2.35, 0]}
-        fontSize={0.32}
-        color="white"
+        position={[0, 2.45, 0]}
+        fontSize={0.36}
+        color="#fff8e7"
         anchorX="center"
         anchorY="middle"
-        outlineWidth={0.025}
+        outlineWidth={0.04}
         outlineColor="#000000"
       >
         {player.name}
       </Text>
+      <mesh position={[0, 2.15, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.35, 12]} />
+        <meshBasicMaterial color="#55efc4" transparent opacity={0.35} />
+      </mesh>
     </group>
   );
 }

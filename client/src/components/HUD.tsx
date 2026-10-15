@@ -23,6 +23,14 @@ export function HUD() {
 
   if (!character) return null;
 
+  const energy = character.stats.energy ?? 100;
+  const hunger = character.stats.hunger ?? 0;
+  const needHints: string[] = [];
+  if (energy < 25) needHints.push("Low energy — rest or drink coffee");
+  else if (energy < 45) needHints.push("Getting tired");
+  if (hunger > 75) needHints.push("Very hungry — eat food from Shop/Inventory");
+  else if (hunger > 55) needHints.push("Hungry — grab a snack");
+
   function handleChat(e: React.FormEvent) {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -74,6 +82,14 @@ export function HUD() {
 
           <div className="hud-money">${character.stats.money.toFixed(0)} cash</div>
           <div style={{ fontSize: 12, color: "#74b9ff" }}>🏦 ${(character.stats.bankBalance ?? 0).toFixed(0)}</div>
+          {character.jobId ? (
+            <div style={{ fontSize: 11, color: "#a8e6cf", marginTop: 4 }}>Job ready · Phone → Jobs → Work</div>
+          ) : (
+            <div style={{ fontSize: 11, color: "#ffeaa7", marginTop: 4 }}>No job · Phone → Jobs → Apply</div>
+          )}
+          {needHints.map((hint) => (
+            <div key={hint} style={{ fontSize: 11, color: "#ff7675", marginTop: 3 }}>{hint}</div>
+          ))}
           <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
             Online: {otherPlayers.size + 1}
           </div>

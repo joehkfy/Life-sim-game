@@ -53,6 +53,9 @@ export function BusinessApp({ onBack }: { onBack: () => void }) {
         {msg && <div className="phone-toast">{msg}</div>}
         {!selected && (
           <>
+            <p className="phone-empty" style={{ marginBottom: 8 }}>
+              Open a shop, café, or company — you become the CEO. Post jobs so other players can apply and work for you. Revenue lands in the business drawer.
+            </p>
             <div className="phone-btn-row" style={{ marginBottom: 8 }}>
               {(["browse", "mine", "jobs"] as const).map((t) => (
                 <button key={t} className={`phone-btn ${tab === t ? "ok" : ""}`} style={{ flex: 1, fontSize: 12 }} onClick={() => setTab(t)}>
@@ -140,15 +143,52 @@ export function BusinessApp({ onBack }: { onBack: () => void }) {
             ))}
             {selected.ownerId === character?.id && (
               <>
+                <div className="bank-card" style={{ marginTop: 8 }}>
+                  <div className="bank-label">Your role</div>
+                  <div style={{ fontWeight: 700 }}>CEO / Owner</div>
+                  <div className="phone-row-sub">You own this company. Hire staff below — they work shifts and you pay their salary from the business drawer or your money.</div>
+                </div>
                 <div className="phone-section">Manage</div>
                 <button className="phone-btn full" onClick={() => act("/api/game/business/open-close", { businessId: selected.id, open: !selected.open })}>
                   {selected.open ? "Close" : "Open"} for business
                 </button>
+                <div className="phone-section">Hire as CEO</div>
+                <div className="phone-chip-row" style={{ marginBottom: 8 }}>
+                  {[
+                    { title: "Manager", salary: "80" },
+                    { title: "Worker", salary: "40" },
+                    { title: "Cashier", salary: "35" },
+                    { title: "Security", salary: "50" },
+                    { title: "Chef", salary: "55" },
+                  ].map((role) => (
+                    <button
+                      key={role.title}
+                      type="button"
+                      className={`phone-chip ${jobTitle === role.title ? "active" : ""}`}
+                      onClick={() => { setJobTitle(role.title); setJobSalary(role.salary); }}
+                    >
+                      {role.title}
+                    </button>
+                  ))}
+                </div>
                 <input className="phone-input" placeholder="Job title" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
-                <input className="phone-input" type="number" placeholder="Salary" value={jobSalary} onChange={(e) => setJobSalary(e.target.value)} />
-                <button className="phone-btn ok full" onClick={() => act("/api/game/business/post-job", { businessId: selected.id, title: jobTitle, roleKey: jobTitle.toLowerCase(), salary: Number(jobSalary) })}>
-                  Post job
+                <input className="phone-input" type="number" placeholder="Salary per shift" value={jobSalary} onChange={(e) => setJobSalary(e.target.value)} />
+                <button className="phone-btn ok full" onClick={() => act("/api/game/business/post-job", { businessId: selected.id, title: jobTitle, roleKey: jobTitle.toLowerCase().replace(/\s+/g, "_"), salary: Number(jobSalary) })}>
+                  Post hiring job
                 </button>
+                {(selected.employees || []).filter((e: any) => e.active).length > 0 && (
+                  <>
+                    <div className="phone-section">Team ({(selected.employees || []).filter((e: any) => e.active).length})</div>
+                    {(selected.employees || []).filter((e: any) => e.active).map((e: any) => (
+                      <div key={e.id} className="phone-row">
+                        <div className="phone-row-text">
+                          <div className="phone-row-title">{e.character?.name || e.title || "Employee"}</div>
+                          <div className="phone-row-sub">{e.title || e.roleKey} · ${e.salary || "?"}/shift</div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
                 <button className="phone-btn full" disabled={!(selected.balance > 0)} onClick={() => act("/api/game/business/withdraw", { businessId: selected.id, amount: selected.balance || 0 })}>
                   Withdraw drawer
                 </button>

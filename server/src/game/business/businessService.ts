@@ -9,16 +9,17 @@ import { getLivePosition } from "../../network/presence";
 const SKILLS = ["intelligence", "strength", "charisma", "creativity", "cooking", "fitness"] as const;
 const MAX_STOCK = 200;
 
+// Lower early-game gates so players can open a shop/company and act as CEO sooner.
 export const BUSINESS_TYPES = [
-  { key: "restaurant", name: "Restaurant", minSkill: "cooking", minVal: 20, openCost: 5000 },
-  { key: "shop", name: "Shop", minSkill: "charisma", minVal: 10, openCost: 4000 },
-  { key: "cafe", name: "Cafe", minSkill: "cooking", minVal: 15, openCost: 3500 },
-  { key: "club", name: "Club", minSkill: "charisma", minVal: 25, openCost: 8000 },
-  { key: "gym", name: "Gym", minSkill: "fitness", minVal: 20, openCost: 6000 },
-  { key: "clinic", name: "Clinic", minSkill: "intelligence", minVal: 40, openCost: 12000 },
-  { key: "taxi", name: "Taxi Company", minSkill: "fitness", minVal: 5, openCost: 3000 },
-  { key: "hotel", name: "Hotel", minSkill: "charisma", minVal: 20, openCost: 15000 },
-  { key: "company", name: "Company", minSkill: "intelligence", minVal: 30, openCost: 10000 },
+  { key: "restaurant", name: "Restaurant", minSkill: "cooking", minVal: 10, openCost: 3500 },
+  { key: "shop", name: "Shop", minSkill: "charisma", minVal: 5, openCost: 2500 },
+  { key: "cafe", name: "Cafe", minSkill: "cooking", minVal: 8, openCost: 2000 },
+  { key: "club", name: "Club", minSkill: "charisma", minVal: 15, openCost: 6000 },
+  { key: "gym", name: "Gym", minSkill: "fitness", minVal: 10, openCost: 4000 },
+  { key: "clinic", name: "Clinic", minSkill: "intelligence", minVal: 25, openCost: 8000 },
+  { key: "taxi", name: "Taxi Company", minSkill: "fitness", minVal: 5, openCost: 2000 },
+  { key: "hotel", name: "Hotel", minSkill: "charisma", minVal: 12, openCost: 10000 },
+  { key: "company", name: "Company", minSkill: "intelligence", minVal: 15, openCost: 6000 },
 ] as const;
 
 const DEFAULT_PRODUCTS: Record<string, { name: string; price: number; skillBoost?: string; skillAmount?: number }[]> = {

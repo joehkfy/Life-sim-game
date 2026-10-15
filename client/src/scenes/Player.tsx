@@ -6,8 +6,7 @@ import { sendMove } from "../systems/network";
 import { useGameStore } from "../stores/gameStore";
 import { useInputStore } from "../stores/inputStore";
 import type { CharacterAppearance } from "@life-sim/shared";
-import { shirtFromAppearance } from "./Avatar";
-import { RiggedAvatar } from "./RiggedAvatar";
+import { Avatar, shirtFromAppearance, pantsFromAppearance } from "./Avatar";
 import { canMoveTo } from "./collisionWorld";
 
 const MOVE_SPEED = 5;
@@ -490,9 +489,10 @@ export function Player({ appearance, initialPosition, initialRotation = 0 }: Pla
   });
 
   const shirt = shirtFromAppearance(appearance, 1);
+  const pants = pantsFromAppearance(appearance, 2);
   return (
     <group ref={group} position={initialPosition} rotation={[0, initialRotation, 0]}>
-      <RiggedAvatar appearance={appearance} shirtColor={shirt} pantsColor="#263242" animation={animation} />
+      <Avatar appearance={appearance} shirtColor={shirt} pantsColor={pants} animation={animation} showFace />
     </group>
   );
 }

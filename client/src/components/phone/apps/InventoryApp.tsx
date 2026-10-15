@@ -26,6 +26,10 @@ export function InventoryApp({ onBack }: { onBack: () => void }) {
     if (!r.ok) setMsg(d.error || "Failed");
     else {
       setMsg(d.message || "OK");
+      const def = items.find((i) => i.key === itemKey);
+      if (def?.category === "food" || path.includes("/use")) {
+        window.dispatchEvent(new Event("life-sim:used-food"));
+      }
       const cr = await fetch(`${API}/api/game/character`, { headers });
       if (cr.ok) setCharacter(await cr.json());
     }

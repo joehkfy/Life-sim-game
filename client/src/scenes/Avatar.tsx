@@ -746,9 +746,25 @@ export function Avatar(props: AvatarProps) {
   );
 }
 
-/** Pick a shirt color from appearance so players have varied wardrobes. */
+const TOP_COLORS = [
+  "#3b82f6", "#ef4444", "#22c55e", "#a855f7", "#f59e0b", "#06b6d4", "#ec4899", "#64748b",
+  "#1e3a5f", "#f8fafc", "#111827", "#f97316", "#14b8a6", "#7c3aed", "#be123c", "#84cc16",
+];
+const BOTTOM_COLORS = [
+  "#1e293b", "#334155", "#0f172a", "#3f3f46", "#1d4ed8", "#166534", "#7c2d12", "#4c1d95",
+  "#292524", "#44403c", "#1e40af", "#14532d", "#78716c", "#365314", "#831843", "#164e63",
+];
+
+/** Shirt color from clothingTop + appearance so wardrobes vary. */
 export function shirtFromAppearance(appearance: CharacterAppearance, seed = 0): string {
-  const colors = ["#3b82f6", "#ef4444", "#22c55e", "#a855f7", "#f59e0b", "#06b6d4", "#ec4899", "#64748b"];
-  const n = Math.abs(Math.floor((appearance?.skinTone ?? 0.5) * 20 + (appearance?.hairStyle ?? 0) * 3 + seed));
-  return colors[n % colors.length];
+  const top = Math.abs(Math.floor(appearance?.clothingTop ?? 0));
+  const n = Math.abs(Math.floor(top * 5 + (appearance?.skinTone ?? 0.5) * 12 + (appearance?.hairStyle ?? 0) * 3 + seed));
+  return TOP_COLORS[n % TOP_COLORS.length];
+}
+
+/** Pants color from clothingBottom. */
+export function pantsFromAppearance(appearance: CharacterAppearance, seed = 0): string {
+  const bottom = Math.abs(Math.floor(appearance?.clothingBottom ?? 0));
+  const n = Math.abs(Math.floor(bottom * 3 + (appearance?.hairStyle ?? 0) + seed));
+  return BOTTOM_COLORS[n % BOTTOM_COLORS.length];
 }

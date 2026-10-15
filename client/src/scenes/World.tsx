@@ -11,6 +11,10 @@ import { LivingCityScene, LivingCityOverlay } from "./LivingCity";
 import { useGameStore } from "../stores/gameStore";
 import { useInputStore } from "../stores/inputStore";
 import { HUD } from "../components/HUD";
+import { StarterGoals } from "../components/StarterGoals";
+import { Minimap } from "../components/Minimap";
+import { NearbyPlayers } from "../components/NearbyPlayers";
+import { WorldEventBanner } from "../components/WorldEventBanner";
 import { Phone, type PhoneAppId } from "../components/phone/Phone";
 import { MobileControls, useIsTouch } from "../components/MobileControls";
 import { BUILDINGS } from "@life-sim/shared";
@@ -462,6 +466,10 @@ export function World() {
         </Canvas>
       </KeyboardControls>
       <HUD />
+      <StarterGoals />
+      <Minimap />
+      <NearbyPlayers />
+      <WorldEventBanner />
       <LivingCityOverlay />
       <BuildingPrompt />
       <PersonalHomePrompt />

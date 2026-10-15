@@ -6,18 +6,18 @@ import { useGameStore } from "../stores/gameStore";
 
 const TAU = Math.PI * 2;
 const WORLD_EDGE = 330;
-const COLOR_AMBIENT_NIGHT = new THREE.Color("#26385b");
+const COLOR_AMBIENT_NIGHT = new THREE.Color("#4a5f8a");
 const COLOR_AMBIENT_DAY = new THREE.Color("#dce9ff");
-const COLOR_HEMISPHERE_NIGHT = new THREE.Color("#17213e");
+const COLOR_HEMISPHERE_NIGHT = new THREE.Color("#3a4d78");
 const COLOR_HEMISPHERE_DAY = new THREE.Color("#c6e0ff");
-const COLOR_GROUND_NIGHT = new THREE.Color("#101823");
+const COLOR_GROUND_NIGHT = new THREE.Color("#2a3548");
 const COLOR_GROUND_DAY = new THREE.Color("#547044");
-const COLOR_SUN_NIGHT = new THREE.Color("#7f9ad8");
+const COLOR_SUN_NIGHT = new THREE.Color("#a8bdf0");
 const COLOR_SUN_DAY = new THREE.Color("#fff1d4");
 const COLOR_SUNSET = new THREE.Color("#ff9a61");
 const COLOR_CLOUDY = new THREE.Color("#a5b2c2");
 const COLOR_FOG_DAY = new THREE.Color("#9ebfd4");
-const COLOR_FOG_NIGHT = new THREE.Color("#111b32");
+const COLOR_FOG_NIGHT = new THREE.Color("#1e2a45");
 
 function solarDirection(time: number) {
   // 06:00 sunrise, 12:00 high sun, 18:00 sunset, midnight below the horizon.
@@ -239,23 +239,26 @@ export function Environment() {
     const daylight = daylightAt(time);
     const twilight = THREE.MathUtils.clamp(1 - Math.abs(direction.y) / 0.3, 0, 1) * (direction.y < 0.15 ? 1 : 0);
 
+    // Keep a readable floor at night (phones go near-black with 0.12 ambient).
     if (ambient.current) {
-      ambient.current.intensity = 0.12 + daylight * 0.5;
+      ambient.current.intensity = 0.38 + daylight * 0.35;
       ambient.current.color.copy(COLOR_AMBIENT_NIGHT).lerp(COLOR_AMBIENT_DAY, daylight);
     }
     if (hemisphere.current) {
-      hemisphere.current.intensity = 0.12 + daylight * 0.48;
+      hemisphere.current.intensity = 0.32 + daylight * 0.4;
       hemisphere.current.color.copy(COLOR_HEMISPHERE_NIGHT).lerp(COLOR_HEMISPHERE_DAY, daylight);
       hemisphere.current.groundColor.copy(COLOR_GROUND_NIGHT).lerp(COLOR_GROUND_DAY, daylight);
     }
     if (sunLight.current) {
-      sunLight.current.position.set(direction.x * 100, direction.y * 100, direction.z * 100);
-      sunLight.current.intensity = 0.025 + daylight * 1.65 + twilight * 0.22;
+      // At night this acts as soft moonlight instead of a dead light.
+      const moonFill = 1 - daylight;
+      sunLight.current.position.set(direction.x * 100, Math.max(direction.y, 0.15) * 100, direction.z * 100);
+      sunLight.current.intensity = 0.22 * moonFill + daylight * 1.65 + twilight * 0.22;
       const base = COLOR_SUN_NIGHT.clone().lerp(COLOR_SUN_DAY, daylight);
       base.lerp(COLOR_SUNSET, twilight * 0.68);
       if (weather === "cloudy" || weather === "rainy" || weather === "stormy") {
         base.lerp(COLOR_CLOUDY, weather === "stormy" ? 0.7 : 0.35);
-        sunLight.current.intensity *= weather === "stormy" ? 0.48 : weather === "rainy" ? 0.68 : 0.82;
+        sunLight.current.intensity *= weather === "stormy" ? 0.55 : weather === "rainy" ? 0.72 : 0.85;
       }
       sunLight.current.color.copy(base);
       sunLight.current.target.position.set(0, 0, 0);
@@ -265,8 +268,9 @@ export function Environment() {
     const fog = scene.fog;
     if (fog instanceof THREE.Fog) {
       fog.color.copy(COLOR_FOG_NIGHT).lerp(COLOR_FOG_DAY, daylight);
-      fog.near = 70;
-      fog.far = 300;
+      // Less aggressive fog at night so the city does not disappear into black.
+      fog.near = 50 + daylight * 20;
+      fog.far = 220 + daylight * 80;
     }
   });
 

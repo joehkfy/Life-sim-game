@@ -297,10 +297,21 @@ export async function seedTravel(prismaClient: PrismaClient = prisma) {
   );
 
   await prismaClient.travelRoute.deleteMany({}); // refresh routes
-  for (let i = 0; i < rows.length; i += 1000) {
-    await prismaClient.travelRoute.createMany({ data: rows.slice(i, i + 1000) });
+  let inserted = 0;
+  for (let i = 0; i < rows.length; i += 500) {
+    const chunk = rows.slice(i, i + 500);
+    try {
+      const result = await prismaClient.travelRoute.createMany({
+        data: chunk,
+        skipDuplicates: true,
+      });
+      inserted += result.count;
+    } catch (err) {
+      // Don't abort the whole seed if one batch fails — log and continue.
+      console.error(`travelRoute batch ${i}-${i + chunk.length} failed:`, err);
+    }
   }
-  console.log(`Seeded ${airports.length} airports, ${stations.length} stations, ${rows.length} routes`);
+  console.log(`Seeded ${airports.length} airports, ${stations.length} stations, ${inserted}/${rows.length} routes`);
 }
 
 async function main() {

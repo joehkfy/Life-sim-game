@@ -293,6 +293,90 @@ export function Interior({ locationKey }: InteriorProps) {
         </mesh>
       </group>
 
+      {/* Public landmark interiors — simple set dressing so shops/hospitals aren't empty boxes */}
+      {!personalHome && (locationKey === "shop" || locationKey.includes("shop")) && (
+        <group>
+          {[-4, 0, 4].map((x) => (
+            <mesh key={`shelf-${x}`} position={[x, 1.2, -5.5]} castShadow>
+              <boxGeometry args={[3.2, 2.4, 0.6]} />
+              <meshStandardMaterial color="#8b6914" roughness={0.8} />
+            </mesh>
+          ))}
+          <mesh position={[0, 0.55, 2]}>
+            <boxGeometry args={[4, 1.1, 1.4]} />
+            <meshStandardMaterial color="#5c4033" />
+          </mesh>
+        </group>
+      )}
+      {!personalHome && locationKey === "hospital" && (
+        <group>
+          <mesh position={[-3, 0.7, -2]}>
+            <boxGeometry args={[2.8, 1.2, 1.6]} />
+            <meshStandardMaterial color="#dfe8f0" />
+          </mesh>
+          <mesh position={[3, 0.7, -2]}>
+            <boxGeometry args={[2.8, 1.2, 1.6]} />
+            <meshStandardMaterial color="#dfe8f0" />
+          </mesh>
+          <mesh position={[0, 1.5, -6]}>
+            <boxGeometry args={[6, 3, 0.4]} />
+            <meshStandardMaterial color="#4a90d9" />
+          </mesh>
+        </group>
+      )}
+      {!personalHome && (locationKey === "school" || locationKey === "university") && (
+        <group>
+          {[-5, -1.5, 2].map((z, i) => (
+            <mesh key={`desk-${i}`} position={[-2 + (i % 2) * 4, 0.55, z]}>
+              <boxGeometry args={[2.4, 0.9, 1.2]} />
+              <meshStandardMaterial color="#8b7355" />
+            </mesh>
+          ))}
+          <mesh position={[0, 1.4, -6.5]}>
+            <boxGeometry args={[8, 2.2, 0.15]} />
+            <meshStandardMaterial color="#2d3436" />
+          </mesh>
+        </group>
+      )}
+      {!personalHome && locationKey === "gym" && (
+        <group>
+          {[-4, 0, 4].map((x) => (
+            <mesh key={`rack-${x}`} position={[x, 0.9, -4]}>
+              <boxGeometry args={[2.2, 1.6, 1.2]} />
+              <meshStandardMaterial color="#2a9d8f" metalness={0.2} roughness={0.5} />
+            </mesh>
+          ))}
+        </group>
+      )}
+      {!personalHome && locationKey === "restaurant" && (
+        <group>
+          {[[-3, -2], [3, -2], [-3, 2], [3, 2]].map(([x, z], i) => (
+            <group key={`table-${i}`} position={[x, 0, z]}>
+              <mesh position={[0, 0.75, 0]}>
+                <cylinderGeometry args={[0.9, 0.9, 0.12, 12]} />
+                <meshStandardMaterial color="#5c4033" />
+              </mesh>
+              <mesh position={[0, 0.35, 0]}>
+                <cylinderGeometry args={[0.12, 0.15, 0.7, 8]} />
+                <meshStandardMaterial color="#3d2918" />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      )}
+      {!personalHome && locationKey === "police" && (
+        <group>
+          <mesh position={[0, 0.9, -4]}>
+            <boxGeometry args={[5, 1.6, 1.8]} />
+            <meshStandardMaterial color="#2c3e6b" />
+          </mesh>
+          <mesh position={[-4, 1.2, 1]}>
+            <boxGeometry args={[2, 2.2, 2]} />
+            <meshStandardMaterial color="#3d4a5c" />
+          </mesh>
+        </group>
+      )}
+
       {/* Purchased furniture is persisted on the property and rendered in the real interior. */}
       {personalHome && furniture.map((item) => (
         <HomeFurnitureObject key={item.id} propertyId={propertyId} item={item} />

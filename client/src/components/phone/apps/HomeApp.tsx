@@ -179,7 +179,9 @@ export function HomeApp({ onBack }: { onBack: () => void }) {
 
         <div className="phone-section">Your furniture · {furniture.length} items</div>
         {!furniture.length ? (
-          <p className="phone-empty">Your house is empty. Buy your first piece of furniture to make it feel like home.</p>
+          <p className="phone-empty">
+            Empty home — buy furniture below, then enter your house to place beds, sofas, and lights. Using a bed restores energy.
+          </p>
         ) : furniture.map((item) => {
           const def = catalog.find((entry) => entry.key === item.furnitureKey);
           return <div key={item.id} className="phone-card">

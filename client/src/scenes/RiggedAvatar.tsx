@@ -175,12 +175,32 @@ function customizeModel(
       switch (material.name) {
         case "Mat_Skin":
         case "Mat_FingerSkin":
-        case "Mat_SkinOverlay": material.color.copy(skinColor(appearance)); break;
-        case "Mat_Hair": material.color.set(appearance?.hairColor || "#2c1810"); break;
-        case "Mat_Shirt": material.color.set(shirtColor); break;
-        case "Mat_Pants": material.color.set(pantsColor); break;
-        case "Mat_Iris": material.color.copy(eyeColor(appearance)); break;
-        case "Mat_Brow": material.color.set(appearance?.hairColor || "#2c1810").multiplyScalar(0.72); break;
+        case "Mat_SkinOverlay":
+          material.color.copy(skinColor(appearance));
+          material.roughness = 0.62;
+          material.metalness = 0.02;
+          break;
+        case "Mat_Hair":
+          material.color.set(appearance?.hairColor || "#2c1810");
+          material.roughness = 0.78;
+          break;
+        case "Mat_Shirt":
+          material.color.set(shirtColor);
+          material.roughness = 0.55;
+          material.metalness = 0.04;
+          break;
+        case "Mat_Pants":
+          material.color.set(pantsColor);
+          material.roughness = 0.7;
+          break;
+        case "Mat_Iris":
+          material.color.copy(eyeColor(appearance));
+          material.roughness = 0.25;
+          material.metalness = 0.05;
+          break;
+        case "Mat_Brow":
+          material.color.set(appearance?.hairColor || "#2c1810").multiplyScalar(0.72);
+          break;
       }
       material.needsUpdate = true;
       return material;
@@ -721,7 +741,7 @@ export function RiggedAvatar({
   });
 
   return (
-    <group ref={pivot} position={[0, 0.8, 0]}>
+    <group ref={pivot} position={[0, 0.8, 0]} scale={1.08}>
       {/* Child offset keeps the model grounded while the outer pivot moves */}
       <group position={[0, -0.8, 0]}>
         <primitive object={model} />
