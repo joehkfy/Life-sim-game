@@ -6,12 +6,12 @@ import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { CharacterAppearance } from "@life-sim/shared";
 
 /**
- * Primary: KayKit Rogue (CC0) — Idle/Walk/Run/Jump/Sit/Cheer + many more clips.
+ * Primary: Donghua humanoid (life-sim proportions, full locomotion + emotes) — Idle/Walk/Run/Jump/Sit/Cheer + many more clips.
  * Optional alt: Young Warrior (limited clips: stand_free/run only).
  * Procedural Avatar remains the final safety net via Avatar.tsx error boundary.
  */
-const MODEL_URL = "/models/characters/life-sim-kaykit-rogue.glb";
-const ALT_MODEL_URL = "/models/characters/life-sim-donghua-base.glb";
+const MODEL_URL = "/models/characters/life-sim-donghua-base.glb";
+const ALT_MODEL_URL = "/models/characters/life-sim-young-warrior.glb";
 
 type RiggedAvatarProps = {
   appearance: CharacterAppearance;
@@ -28,51 +28,51 @@ type RiggedAvatarProps = {
  */
 const ACTION_CLIPS: Record<string, string> = {
   idle: "Idle",
-  walk: "Walking_A",
-  run: "Running_A",
-  sleep: "Lie_Idle",
-  waking: "Sit_Floor_StandUp",
-  stand_up: "Sit_Floor_StandUp",
-  relax: "Sit_Floor_Idle",
-  watch_tv: "Sit_Chair_Idle",
-  watch_tv_sit: "Sit_Chair_Idle",
-  get_snack: "Interact",
-  cook: "Interact",
-  shower: "Idle",
-  work_on_computer: "Sit_Chair_Idle",
-  read: "Sit_Chair_Idle",
-  sit: "Sit_Chair_Idle",
-  phone: "Interact",
-  phone_typing: "Interact",
-  wave: "Cheer",
-  jump: "Jump_Start",
-  land: "Jump_Land",
-  crouch: "Idle",
-  drink: "Interact",
-  open_door: "Interact",
-  reach: "Interact",
-  pick_up: "Interact",
-  pickup: "Interact",
-  carry: "Idle",
-  put_down: "Interact",
-  talk: "Interact",
-  laugh: "Cheer",
-  clap: "Cheer",
-  shrug: "Idle",
-  point: "Interact",
-  handshake: "Interact",
-  fist_bump: "Interact",
-  celebrate: "Cheer",
-  stretch: "Idle",
-  yawn: "Idle",
-  nod: "Idle",
-  shake_head: "Idle",
-  look_at: "Idle",
-  idle_holding: "Idle",
-  dance: "Cheer",
-  wash_hands: "Interact",
-  brush_teeth: "Interact",
-  kneel: "Sit_Floor_Idle",
+  walk: "Walk",
+  run: "Run",
+  sleep: "Sleep",
+  waking: "WakeUp",
+  stand_up: "StandUp",
+  relax: "Relax",
+  watch_tv: "WatchTVStanding",
+  watch_tv_sit: "WatchTV",
+  get_snack: "Eat",
+  cook: "Cook",
+  shower: "Shower",
+  work_on_computer: "Type",
+  read: "Read",
+  sit: "SitIdle",
+  phone: "Phone",
+  phone_typing: "PhoneTyping",
+  wave: "Wave",
+  jump: "Jump",
+  land: "Land",
+  crouch: "Crouch",
+  drink: "Drink",
+  open_door: "OpenDoor",
+  reach: "Reach",
+  pick_up: "PickUp",
+  pickup: "PickUp",
+  carry: "Carry",
+  put_down: "PutDown",
+  talk: "Talk",
+  laugh: "Laugh",
+  clap: "Clap",
+  shrug: "Shrug",
+  point: "Point",
+  handshake: "Handshake",
+  fist_bump: "FistBump",
+  celebrate: "Celebrate",
+  stretch: "Stretch",
+  yawn: "Yawn",
+  nod: "Nod",
+  shake_head: "ShakeHead",
+  look_at: "LookAt",
+  idle_holding: "IdleHolding",
+  dance: "Dance",
+  wash_hands: "WashHands",
+  brush_teeth: "BrushTeeth",
+  kneel: "Kneel",
 };
 
 /** Fallback clip names if a lighter GLB (Young Warrior) is ever used. */

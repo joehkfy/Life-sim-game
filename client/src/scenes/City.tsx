@@ -8,20 +8,6 @@ import { USER_APARTMENT, USER_STORE, COMMERCIAL, pickBuilding, poolFor } from ".
 
 /** Main avenue tiles (Kenney road kit): 10 m tiles, road runs along X, rotated 90° for the N/S avenue. */
 const AVENUE_TILE = 10;
-
-const LOCAL_STREET_TILES: TileInstance[] = (() => {
-  const streets = [-42, -28, -14, 14, 28, 42];
-  const list: TileInstance[] = [];
-  for (const s of streets) {
-    for (let i = -12; i <= 12; i++) {
-      if (i === 0) continue;
-      list.push({ x: s, z: i * AVENUE_TILE, rotY: Math.PI / 2 });
-      list.push({ x: i * AVENUE_TILE, z: s, rotY: 0 });
-    }
-  }
-  return list;
-})();
-
 const AVENUE_TILES: TileInstance[] = (() => {
   const list: TileInstance[] = [];
   for (let i = -35; i <= 35; i++) {
@@ -563,7 +549,6 @@ export function City() {
 
       {/* Main avenues: Kenney road tiles, falling back to the original flat asphalt + markings. */}
       <InstancedTiles url={MODELS.roadStraight} tiles={AVENUE_TILES} size={AVENUE_TILE} fallback={oldAvenue} />
-      <InstancedTiles url={MODELS.roadStraight} tiles={LOCAL_STREET_TILES} size={AVENUE_TILE} fallback={null} />
       <ModelOrFallback
         url={MODELS.roadCrossroad}
         fit={{ width: AVENUE_TILE, depth: AVENUE_TILE, mode: "stretch" }}
