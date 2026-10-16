@@ -1,6 +1,8 @@
 import { Component, Suspense, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import { useGLTF } from "@react-three/drei";
+import { useLoader } from "@react-three/fiber";
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 
 /**
  * Shared helpers for loading the 3D asset pack in /public/models/world.
@@ -18,9 +20,42 @@ export const MODELS = {
   store: worldModel("buildings/convenience-store-01.glb"),
   apartment: worldModel("buildings/apartment-block-01.glb"),
   sedanCustom: worldModel("buildings/car-sedan-01.glb"),
-  // Kenney city roads (1x1 tiles, road runs along X)
+  // Kenney city roads (tile size ~10 world units when scaled)
   roadStraight: worldModel("roads/road-straight.glb"),
   roadCrossroad: worldModel("roads/road-crossroad.glb"),
+  roadCrossroadLine: worldModel("roads/road-crossroad-line.glb"),
+  roadCrossing: worldModel("roads/road-crossing.glb"),
+  roadBend: worldModel("roads/road-bend.glb"),
+  streetLight: worldModel("roads/light-square.glb"),
+  // Kenney commercial buildings (City Kit Commercial)
+  commercialA: worldModel("buildings/commercial/building-a.glb"),
+  commercialB: worldModel("buildings/commercial/building-b.glb"),
+  commercialC: worldModel("buildings/commercial/building-c.glb"),
+  commercialD: worldModel("buildings/commercial/building-d.glb"),
+  commercialE: worldModel("buildings/commercial/building-e.glb"),
+  commercialF: worldModel("buildings/commercial/building-f.glb"),
+  commercialG: worldModel("buildings/commercial/building-g.glb"),
+  commercialH: worldModel("buildings/commercial/building-h.glb"),
+  commercialI: worldModel("buildings/commercial/building-i.glb"),
+  commercialJ: worldModel("buildings/commercial/building-j.glb"),
+  commercialK: worldModel("buildings/commercial/building-k.glb"),
+  commercialL: worldModel("buildings/commercial/building-l.glb"),
+  skyscraperA: worldModel("buildings/commercial/building-skyscraper-a.glb"),
+  skyscraperB: worldModel("buildings/commercial/building-skyscraper-b.glb"),
+  skyscraperC: worldModel("buildings/commercial/building-skyscraper-c.glb"),
+  // Kenney suburban houses (City Kit Suburban)
+  suburbanA: worldModel("buildings/suburban/building-type-a.glb"),
+  suburbanB: worldModel("buildings/suburban/building-type-b.glb"),
+  suburbanC: worldModel("buildings/suburban/building-type-c.glb"),
+  suburbanD: worldModel("buildings/suburban/building-type-d.glb"),
+  suburbanE: worldModel("buildings/suburban/building-type-e.glb"),
+  suburbanF: worldModel("buildings/suburban/building-type-f.glb"),
+  suburbanG: worldModel("buildings/suburban/building-type-g.glb"),
+  suburbanH: worldModel("buildings/suburban/building-type-h.glb"),
+  suburbanI: worldModel("buildings/suburban/building-type-i.glb"),
+  suburbanJ: worldModel("buildings/suburban/building-type-j.glb"),
+  suburbanTreeLarge: worldModel("buildings/suburban/tree-large.glb"),
+  suburbanTreeSmall: worldModel("buildings/suburban/tree-small.glb"),
   // Kenney cars (front faces +Z)
   sedan: worldModel("cars/sedan.glb"),
   sedanSports: worldModel("cars/sedan-sports.glb"),
@@ -65,6 +100,47 @@ export const MODELS = {
   table: worldModel("furniture/table.glb"),
   chair: worldModel("furniture/chairCushion.glb"),
   bookcase: worldModel("furniture/bookcaseOpen.glb"),
+} as const;
+
+/** Ultimate House Interior Pack (FBX) — richer home / apartment props */
+export const HOUSE = {
+  bedKing: worldModel("house/Bed_King.fbx"),
+  bedSingle: worldModel("house/Bed_Single.fbx"),
+  bedBunk: worldModel("house/Bed_Bunk.fbx"),
+  couchLarge: worldModel("house/Couch_Large1.fbx"),
+  couchMedium: worldModel("house/Couch_Medium1.fbx"),
+  couchSmall: worldModel("house/Couch_Small1.fbx"),
+  couchL: worldModel("house/Couch_L.fbx"),
+  chair1: worldModel("house/Chair_1.fbx"),
+  chair2: worldModel("house/Chair_2.fbx"),
+  stool: worldModel("house/Stool.fbx"),
+  tableLarge: worldModel("house/Table_RoundLarge.fbx"),
+  tableSmall: worldModel("house/Table_RoundSmall.fbx"),
+  nightStand: worldModel("house/NightStand_1.fbx"),
+  nightStand2: worldModel("house/NightStand_2.fbx"),
+  drawer: worldModel("house/Drawer_1.fbx"),
+  dresser: worldModel("house/Drawer_3.fbx"),
+  bookshelf: worldModel("house/Bookshelf.fbx"),
+  shelfLarge: worldModel("house/Shelf_Large.fbx"),
+  shelf: worldModel("house/Shelf_1.fbx"),
+  fridge: worldModel("house/Kitchen_Fridge.fbx"),
+  oven: worldModel("house/Kitchen_Oven.fbx"),
+  kitchenSink: worldModel("house/Kitchen_Sink.fbx"),
+  kitchenCabinet: worldModel("house/Kitchen_Cabinet1.fbx"),
+  kitchenDrawers: worldModel("house/Kitchen_3Drawers.fbx"),
+  bathtub: worldModel("house/Bathroom_Bathtub.fbx"),
+  shower: worldModel("house/Bathroom_Shower1.fbx"),
+  toilet: worldModel("house/Bathroom_Toilet.fbx"),
+  bathSink: worldModel("house/Bathroom_Sink.fbx"),
+  washer: worldModel("house/Bathroom_WashingMachine.fbx"),
+  lampFloor: worldModel("house/Light_Floor1.fbx"),
+  lampCeiling: worldModel("house/Light_Ceiling1.fbx"),
+  lampDesk: worldModel("house/Light_Desk.fbx"),
+  fireplace: worldModel("house/Fireplace.fbx"),
+  carpet: worldModel("house/Carpet_1.fbx"),
+  plant1: worldModel("house/Houseplant_1.fbx"),
+  plant2: worldModel("house/Houseplant_3.fbx"),
+  trash: worldModel("house/Trashcan_Small1.fbx"),
 } as const;
 
 export type ModelFit = {
@@ -153,6 +229,76 @@ export function ModelOrFallback({
     <AssetBoundary fallback={fallback}>
       <Suspense fallback={fallback}>
         <FittedModel url={url} fit={fit} yaw={yaw} shadows={shadows} />
+      </Suspense>
+    </AssetBoundary>
+  );
+}
+
+/** Fit an FBX (Ultimate House pack) the same way as FittedModel. */
+export function FittedFbx({ url, fit, yaw = 0, shadows = true }: { url: string; fit?: ModelFit; yaw?: number; shadows?: boolean }) {
+  const scene = useLoader(FBXLoader, url);
+  const { root, scale, offset } = useMemo(() => {
+    const root = scene.clone(true);
+    root.updateMatrixWorld(true);
+    root.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (mesh.isMesh) {
+        mesh.castShadow = shadows;
+        mesh.receiveShadow = true;
+        if (mesh.material) {
+          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          mats.forEach((m) => {
+            const mat = m as THREE.MeshStandardMaterial;
+            if (mat.color) mat.color.multiplyScalar(1.05);
+            mat.needsUpdate = true;
+          });
+        }
+      }
+    });
+    const box = new THREE.Box3().setFromObject(root);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const ratios = [
+      fit?.width ? fit.width / Math.max(size.x, 1e-4) : null,
+      fit?.height ? fit.height / Math.max(size.y, 1e-4) : null,
+      fit?.depth ? fit.depth / Math.max(size.z, 1e-4) : null,
+    ];
+    const given = ratios.filter((r): r is number => r !== null);
+    const uniform = given.length ? Math.min(...given) : 1;
+    const scale: [number, number, number] =
+      fit?.mode === "stretch"
+        ? [ratios[0] ?? 1, ratios[1] ?? 1, ratios[2] ?? 1]
+        : [uniform, uniform, uniform];
+    const offset: [number, number, number] = [-center.x, -box.min.y, -center.z];
+    return { root, scale, offset };
+  }, [scene, fit?.width, fit?.height, fit?.depth, fit?.mode, shadows]);
+
+  return (
+    <group rotation={[0, yaw, 0]}>
+      <group scale={scale} position={[offset[0] * scale[0], offset[1] * scale[1], offset[2] * scale[2]]}>
+        <primitive object={root} />
+      </group>
+    </group>
+  );
+}
+
+export function FbxOrFallback({
+  url,
+  fit,
+  yaw,
+  shadows,
+  fallback = null,
+}: {
+  url: string;
+  fit?: ModelFit;
+  yaw?: number;
+  shadows?: boolean;
+  fallback?: ReactNode;
+}) {
+  return (
+    <AssetBoundary fallback={fallback}>
+      <Suspense fallback={fallback}>
+        <FittedFbx url={url} fit={fit} yaw={yaw} shadows={shadows} />
       </Suspense>
     </AssetBoundary>
   );

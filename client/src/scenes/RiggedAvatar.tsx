@@ -6,12 +6,12 @@ import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { CharacterAppearance } from "@life-sim/shared";
 
 /**
- * Primary: Donghua humanoid GLB — full locomotion + emote clip set.
+ * Primary: KayKit Rogue (CC0) — Idle/Walk/Run/Jump/Sit/Cheer + many more clips.
  * Optional alt: Young Warrior (limited clips: stand_free/run only).
  * Procedural Avatar remains the final safety net via Avatar.tsx error boundary.
  */
-const MODEL_URL = "/models/characters/life-sim-donghua-base.glb";
-const ALT_MODEL_URL = "/models/characters/life-sim-young-warrior.glb";
+const MODEL_URL = "/models/characters/life-sim-kaykit-rogue.glb";
+const ALT_MODEL_URL = "/models/characters/life-sim-donghua-base.glb";
 
 type RiggedAvatarProps = {
   appearance: CharacterAppearance;
@@ -28,51 +28,51 @@ type RiggedAvatarProps = {
  */
 const ACTION_CLIPS: Record<string, string> = {
   idle: "Idle",
-  walk: "Walk",
-  run: "Run",
-  sleep: "Sleep",
-  waking: "WakeUp",
-  stand_up: "StandUp",
-  relax: "Relax",
-  watch_tv: "WatchTVStanding",
-  watch_tv_sit: "WatchTV",
-  get_snack: "Eat",
-  cook: "Cook",
-  shower: "Shower",
-  work_on_computer: "Type",
-  read: "Read",
-  sit: "SitIdle",
-  phone: "Phone",
-  phone_typing: "PhoneTyping",
-  wave: "Wave",
-  jump: "Jump",
-  land: "Land",
-  crouch: "Crouch",
-  drink: "Drink",
-  open_door: "OpenDoor",
-  reach: "Reach",
-  pick_up: "PickUp",
-  pickup: "PickUp",
-  carry: "Carry",
-  put_down: "PutDown",
-  talk: "Talk",
-  laugh: "Laugh",
-  clap: "Clap",
-  shrug: "Shrug",
-  point: "Point",
-  handshake: "Handshake",
-  fist_bump: "FistBump",
-  celebrate: "Celebrate",
-  stretch: "Stretch",
-  yawn: "Yawn",
-  nod: "Nod",
-  shake_head: "ShakeHead",
-  look_at: "LookAt",
-  idle_holding: "IdleHolding",
-  dance: "Dance",
-  wash_hands: "WashHands",
-  brush_teeth: "BrushTeeth",
-  kneel: "Kneel",
+  walk: "Walking_A",
+  run: "Running_A",
+  sleep: "Lie_Idle",
+  waking: "Sit_Floor_StandUp",
+  stand_up: "Sit_Floor_StandUp",
+  relax: "Sit_Floor_Idle",
+  watch_tv: "Sit_Chair_Idle",
+  watch_tv_sit: "Sit_Chair_Idle",
+  get_snack: "Interact",
+  cook: "Interact",
+  shower: "Idle",
+  work_on_computer: "Sit_Chair_Idle",
+  read: "Sit_Chair_Idle",
+  sit: "Sit_Chair_Idle",
+  phone: "Interact",
+  phone_typing: "Interact",
+  wave: "Cheer",
+  jump: "Jump_Start",
+  land: "Jump_Land",
+  crouch: "Idle",
+  drink: "Interact",
+  open_door: "Interact",
+  reach: "Interact",
+  pick_up: "Interact",
+  pickup: "Interact",
+  carry: "Idle",
+  put_down: "Interact",
+  talk: "Interact",
+  laugh: "Cheer",
+  clap: "Cheer",
+  shrug: "Idle",
+  point: "Interact",
+  handshake: "Interact",
+  fist_bump: "Interact",
+  celebrate: "Cheer",
+  stretch: "Idle",
+  yawn: "Idle",
+  nod: "Idle",
+  shake_head: "Idle",
+  look_at: "Idle",
+  idle_holding: "Idle",
+  dance: "Cheer",
+  wash_hands: "Interact",
+  brush_teeth: "Interact",
+  kneel: "Sit_Floor_Idle",
 };
 
 /** Fallback clip names if a lighter GLB (Young Warrior) is ever used. */
@@ -152,7 +152,14 @@ function resolveClipName(
 }
 
 function findBone(root: THREE.Object3D, names: string[]): THREE.Bone | undefined {
-  for (const name of names) {
+  // Also try KayKit-style prefixes (Rogue_/Mage_/Knight_)
+  const expanded = [...names];
+  for (const n of names) {
+    for (const prefix of ["Rogue_", "Mage_", "Knight_", "Barbarian_"]) {
+      if (!n.startsWith(prefix)) expanded.push(prefix + n.replace(/^(mixamorig|Armature_)/, ""));
+    }
+  }
+  for (const name of expanded) {
     const obj = root.getObjectByName(name);
     if (obj && (obj as THREE.Bone).isBone) return obj as THREE.Bone;
   }
@@ -300,24 +307,27 @@ function customizeModel(
         meshName.toLowerCase().includes("eye");
 
       if (isSkin) {
-        // Preserve texture maps; tint with skin tone
+        // Preserve texture maps; warmer skin response under city lighting
         material.color.copy(skin);
-        material.roughness = Math.min(0.85, (material.roughness ?? 0.6) + 0.05);
-        material.metalness = 0.02;
+        material.roughness = Math.min(0.72, Math.max(0.38, (material.roughness ?? 0.55)));
+        material.metalness = 0.01;
+        if ("envMapIntensity" in material) (material as THREE.MeshStandardMaterial).envMapIntensity = 0.55;
       } else if (isHair) {
         material.color.set(appearance?.hairColor || "#2c1810");
-        material.roughness = 0.78;
+        material.roughness = 0.62;
+        material.metalness = 0.04;
       } else if (matName === "Mat_Shirt") {
         material.color.set(shirtColor);
-        material.roughness = 0.55;
-        material.metalness = 0.04;
+        material.roughness = 0.48;
+        material.metalness = 0.05;
       } else if (matName === "Mat_Pants") {
         material.color.set(pantsColor);
-        material.roughness = 0.7;
+        material.roughness = 0.62;
       } else if (isIris) {
         material.color.copy(eyeColor(appearance));
-        material.roughness = 0.25;
-        material.metalness = 0.05;
+        material.roughness = 0.2;
+        material.metalness = 0.08;
+        material.emissive = eyeColor(appearance).multiplyScalar(0.08);
       } else if (matName === "Mat_Brow") {
         material.color.set(appearance?.hairColor || "#2c1810").multiplyScalar(0.72);
       }
@@ -910,7 +920,7 @@ export function RiggedAvatar({
   });
 
   return (
-    <group ref={pivot} position={[0, 0.8, 0]} scale={1.08}>
+    <group ref={pivot} position={[0, 0.82, 0]} scale={1.14}>
       {/* Child offset keeps the model grounded while the outer pivot moves */}
       <group position={[0, -0.8, 0]}>
         <primitive object={model} />

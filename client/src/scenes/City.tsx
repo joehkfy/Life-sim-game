@@ -401,39 +401,56 @@ export function City() {
       residential: boolean;
     }[] = [];
 
-    const ROAD_HALF = 5.5;
-    const blocks = layout.blocks;
-    const max = mobile ? Math.min(14, blocks.length) : blocks.length;
+    /**
+     * Proper city grid: roads on a fixed spacing, buildings only in block centres.
+     * GRID = distance between parallel roads. ROAD_HALF = half the driveable width.
+     * This stops random boxes sitting on asphalt and makes Kenney road tiles line up.
+     */
+    const GRID = 14;
+    const ROAD_HALF = 5.0;
+    const extent = mobile ? 2 : 3; // how many rings of blocks around centre
     const floorSpan = Math.max(1, layout.maxFloors - layout.minFloors);
+    let idx = 0;
 
-    for (let i = 0; i < max; i++) {
-      const [bx, bz] = blocks[i];
-      // Keep the eastern edge clear for the persistent player-owned home district.
-      if (bx >= 30) continue;
-      const r = rand(seed + i * 17);
-      const floors = layout.minFloors + Math.floor(r * (mobile ? Math.min(floorSpan, 4) : floorSpan));
-      const width = layout.widthMin + rand(seed + i * 3) * layout.widthSpan;
-      const depth = layout.depthMin + rand(seed + i * 5) * layout.depthSpan;
-      const style = theme.styles[Math.floor(rand(seed + i * 9) * theme.styles.length)] as BuildStyle;
+    for (let gx = -extent; gx <= extent; gx++) {
+      for (let gz = -extent; gz <= extent; gz++) {
+        // Skip the central park ring
+        if (Math.abs(gx) + Math.abs(gz) === 0) continue;
+        // Keep eastern edge free for player homes
+        if (gx >= 3) continue;
 
-      let x = bx + (rand(seed + i) - 0.5) * 2.5;
-      let z = bz + (rand(seed + i * 2) - 0.5) * 2.5;
-      if (Math.abs(x) < ROAD_HALF + width / 2) {
-        x = (x >= 0 ? 1 : -1) * (ROAD_HALF + width / 2 + 0.5);
+        // Block centre sits between road lines at gx*GRID and (gx±1)*GRID
+        const x = gx * GRID + (gx >= 0 ? GRID / 2 : -GRID / 2);
+        const z = gz * GRID + (gz >= 0 ? GRID / 2 : -GRID / 2);
+        // Extra clearance from the main cross (x=0 / z=0 avenues)
+        if (Math.abs(x) < ROAD_HALF + 3 || Math.abs(z) < ROAD_HALF + 3) continue;
+
+        const r = rand(seed + idx * 17);
+        const floors = layout.minFloors + Math.floor(r * (mobile ? Math.min(floorSpan, 4) : floorSpan));
+        // Lot size stays inside the block (leave sidewalk margin)
+        const maxLot = GRID - ROAD_HALF * 2 - 1.5;
+        const width = Math.min(maxLot, layout.widthMin + rand(seed + idx * 3) * layout.widthSpan);
+        const depth = Math.min(maxLot, layout.depthMin + rand(seed + idx * 5) * layout.depthSpan);
+        const style = theme.styles[Math.floor(rand(seed + idx * 9) * theme.styles.length)] as BuildStyle;
+        const residential =
+          style !== "shop" &&
+          style !== "glass" &&
+          layout.kind !== "dense" &&
+          layout.kind !== "arid";
+
+        list.push({
+          position: [x, 0, z],
+          width,
+          depth,
+          floors,
+          style,
+          seed: seed + idx,
+          residential,
+        });
+        idx += 1;
+        if (mobile && idx >= 16) break;
       }
-      if (Math.abs(z) < ROAD_HALF + depth / 2) {
-        z = (z >= 0 ? 1 : -1) * (ROAD_HALF + depth / 2 + 0.5);
-      }
-
-      list.push({
-        position: [x, 0, z],
-        width,
-        depth,
-        floors,
-        style,
-        seed: seed + i,
-        residential: style !== "shop" && style !== "glass" && layout.kind !== "dense" && layout.kind !== "arid",
-      });
+      if (mobile && idx >= 16) break;
     }
     return list;
   }, [seed, theme, mobile, layout]);
@@ -493,7 +510,8 @@ export function City() {
 
   const worldSize = 700; // wide enough for several hundred persistent player homes
   const neighbourhoodRoads = Array.from({ length: 24 }, (_, i) => 35 + i * 12);
-  const localStreets = layout.streets.filter((s) => Math.abs(s) > 5);
+  // Fixed road grid matching building block centres (GRID=14 in buildings generator).
+  const localStreets = [-42, -28, -14, 14, 28, 42];
 
   const oldAvenue = (
     <>
@@ -547,11 +565,11 @@ export function City() {
       {localStreets.map((roadX) => (
         <group key={`local-street-x-${roadX}`}>
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[roadX, 0.012, 0]} receiveShadow>
-            <planeGeometry args={[3.0, 100]} />
+            <planeGeometry args={[4.4, 100]} />
             <meshStandardMaterial color={theme.road} roughness={0.92} />
           </mesh>
-          {[-1, 1].map((side) => <mesh key={side} rotation={[-Math.PI / 2, 0, 0]} position={[roadX + side * 2.0, 0.023, 0]}>
-            <planeGeometry args={[0.78, 100]} />
+          {[-1, 1].map((side) => <mesh key={side} rotation={[-Math.PI / 2, 0, 0]} position={[roadX + side * 2.6, 0.023, 0]}>
+            <planeGeometry args={[0.9, 100]} />
             <meshStandardMaterial color="#a5a39c" roughness={0.95} />
           </mesh>)}
         </group>
@@ -559,11 +577,11 @@ export function City() {
       {localStreets.map((roadZ) => (
         <group key={`local-street-z-${roadZ}`}>
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, roadZ]} receiveShadow>
-            <planeGeometry args={[100, 3.0]} />
+            <planeGeometry args={[100, 4.4]} />
             <meshStandardMaterial color={theme.road} roughness={0.92} />
           </mesh>
-          {[-1, 1].map((side) => <mesh key={side} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.023, roadZ + side * 2.0]}>
-            <planeGeometry args={[100, 0.78]} />
+          {[-1, 1].map((side) => <mesh key={side} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.023, roadZ + side * 2.6]}>
+            <planeGeometry args={[100, 0.9]} />
             <meshStandardMaterial color="#a5a39c" roughness={0.95} />
           </mesh>)}
         </group>

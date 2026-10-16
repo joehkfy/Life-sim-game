@@ -47,7 +47,7 @@ interface ResidentSummary {
   message: string;
 }
 
-const ROAD_COORDS = [-35, -21, -7, 7, 21, 35] as const;
+const ROAD_COORDS = [-42, -28, -14, 14, 28, 42] as const;
 // Targets match shared BUILDINGS so NPC paths and enterable landmarks stay aligned.
 const DESTINATIONS: Record<DestinationKey, { target: [number, number, number]; road: [number, number]; name: string }> = {
   home: { target: [20, 0, -8], road: [21, -7], name: "Apartments" },
@@ -61,6 +61,7 @@ const DESTINATIONS: Record<DestinationKey, { target: [number, number, number]; r
   park: { target: [0, 0, 0], road: [-7, -7], name: "Central Park" },
 };
 
+/** Only key service NPCs — no filler crowd of identical walkers. */
 const RESIDENT_SEEDS: Array<{
   name: string;
   role: ResidentRole;
@@ -70,20 +71,11 @@ const RESIDENT_SEEDS: Array<{
   skin: number;
   hairStyle: number;
 }> = [
-  { name: "Amara Okafor", role: "student", shirt: "#d97745", pants: "#273650", hair: "#241914", skin: 0.68, hairStyle: 1 },
-  { name: "Daniel Reed", role: "office_worker", shirt: "#416a9d", pants: "#27303a", hair: "#30231b", skin: 0.55, hairStyle: 0 },
-  { name: "Mei Lin", role: "student", shirt: "#b96f9e", pants: "#36415b", hair: "#201b1c", skin: 0.52, hairStyle: 2 },
   { name: "Tunde Adebayo", role: "shopkeeper", shirt: "#4d8675", pants: "#3a342e", hair: "#211a16", skin: 0.77, hairStyle: 1 },
-  { name: "Sofia Martins", role: "health_worker", shirt: "#72a7c9", pants: "#f0f2f4", hair: "#71462d", skin: 0.48, hairStyle: 3 },
-  { name: "Kenji Sato", role: "office_worker", shirt: "#6774a7", pants: "#252d3b", hair: "#211c1b", skin: 0.54, hairStyle: 0 },
-  { name: "Zara Bello", role: "fitness_coach", shirt: "#9b554b", pants: "#333c46", hair: "#211611", skin: 0.74, hairStyle: 2 },
+  { name: "Sofia Martins", role: "health_worker", shirt: "#72a7c9", pants: "#f0f2f4", hair: "#71462d", skin: 0.48, hairStyle: 2 },
   { name: "Noah Williams", role: "police_officer", shirt: "#304d7d", pants: "#222d43", hair: "#443025", skin: 0.43, hairStyle: 0 },
-  { name: "Priya Shah", role: "shopper", shirt: "#d2a34b", pants: "#55506b", hair: "#35251f", skin: 0.57, hairStyle: 3 },
-  { name: "Chidi Nwosu", role: "night_worker", shirt: "#577c9b", pants: "#2b3038", hair: "#231a14", skin: 0.78, hairStyle: 1 },
-  { name: "Layla Hassan", role: "health_worker", shirt: "#8070a6", pants: "#373a49", hair: "#2e2018", skin: 0.63, hairStyle: 2 },
-  { name: "Ethan Clarke", role: "shopper", shirt: "#6e9b55", pants: "#333d35", hair: "#503323", skin: 0.45, hairStyle: 0 },
-  { name: "Nneka Eze", role: "shopkeeper", shirt: "#be6d64", pants: "#3b3b4e", hair: "#1f1715", skin: 0.75, hairStyle: 3 },
-  { name: "Oliver Chen", role: "night_worker", shirt: "#a36b4d", pants: "#262c37", hair: "#211d1b", skin: 0.51, hairStyle: 0 },
+  { name: "Zara Bello", role: "fitness_coach", shirt: "#9b554b", pants: "#333c46", hair: "#211611", skin: 0.74, hairStyle: 2 },
+  { name: "Amara Okafor", role: "student", shirt: "#d97745", pants: "#273650", hair: "#241914", skin: 0.68, hairStyle: 1 },
 ];
 
 
@@ -337,25 +329,24 @@ interface TrafficConfig {
 }
 
 function carConfigs(mobile: boolean): TrafficConfig[] {
-  // lane = fixed X when driving N/S (axis z), fixed Z when driving E/W (axis x).
-  // Stay on painted roads: main cross (±1.65) and local streets at ±21 (City.tsx).
+  // Drive on the main avenues (x=0 / z=0) and on GRID roads at ±14, ±28.
   const base: TrafficConfig[] = [
-    { id: "z-north-1", axis: "z" as const, direction: 1 as const, lane: -1.65, start: -88, speed: 6.7, color: "#d85149" },
-    { id: "z-south-1", axis: "z" as const, direction: -1 as const, lane: 1.65, start: 90, speed: 7.4, color: "#e5e8ed" },
-    { id: "z-north-2", axis: "z" as const, direction: 1 as const, lane: -1.65, start: -55, speed: 5.9, color: "#476d9c" },
-    { id: "z-south-2", axis: "z" as const, direction: -1 as const, lane: 1.65, start: 54, speed: 6.4, color: "#e0b95f" },
-    { id: "x-east-1", axis: "x" as const, direction: 1 as const, lane: 1.65, start: -92, speed: 7.1, color: "#4d9479" },
-    { id: "x-west-1", axis: "x" as const, direction: -1 as const, lane: -1.65, start: 86, speed: 6.2, color: "#9d6bb0" },
-    { id: "x-east-2", axis: "x" as const, direction: 1 as const, lane: 1.65, start: -58, speed: 6.6, color: "#d6d8dc" },
-    { id: "x-west-2", axis: "x" as const, direction: -1 as const, lane: -1.65, start: 53, speed: 7.5, color: "#454b55", kind: "car" as const },
-    { id: "city-taxi", axis: "z" as const, direction: 1 as const, lane: 1.65, start: -24, speed: 4.8, color: "#eabd3d", kind: "taxi" as const },
-    { id: "city-bus", axis: "x" as const, direction: -1 as const, lane: 1.65, start: 30, speed: 4.2, color: "#3b7e9c", kind: "bus" as const },
-    { id: "z-local-w", axis: "z" as const, direction: 1 as const, lane: -21, start: -70, speed: 5.5, color: "#6a8fad" },
-    { id: "z-local-e", axis: "z" as const, direction: -1 as const, lane: 21, start: 62, speed: 5.8, color: "#c47a5a" },
-    { id: "x-local-n", axis: "x" as const, direction: 1 as const, lane: -21, start: -66, speed: 5.4, color: "#7a9b6e" },
-    { id: "x-local-s", axis: "x" as const, direction: -1 as const, lane: 21, start: 58, speed: 5.6, color: "#8b7bb0" },
+    { id: "z-north-1", axis: "z" as const, direction: 1 as const, lane: -2.8, start: -88, speed: 6.4, color: "#d85149" },
+    { id: "z-south-1", axis: "z" as const, direction: -1 as const, lane: 2.8, start: 90, speed: 7.0, color: "#e5e8ed" },
+    { id: "z-north-2", axis: "z" as const, direction: 1 as const, lane: -2.8, start: -55, speed: 5.6, color: "#476d9c" },
+    { id: "z-south-2", axis: "z" as const, direction: -1 as const, lane: 2.8, start: 54, speed: 6.1, color: "#e0b95f" },
+    { id: "x-east-1", axis: "x" as const, direction: 1 as const, lane: 2.8, start: -92, speed: 6.8, color: "#4d9479" },
+    { id: "x-west-1", axis: "x" as const, direction: -1 as const, lane: -2.8, start: 86, speed: 5.9, color: "#9d6bb0" },
+    { id: "x-east-2", axis: "x" as const, direction: 1 as const, lane: 2.8, start: -58, speed: 6.3, color: "#d6d8dc" },
+    { id: "x-west-2", axis: "x" as const, direction: -1 as const, lane: -2.8, start: 53, speed: 7.1, color: "#454b55", kind: "car" as const },
+    { id: "city-taxi", axis: "z" as const, direction: 1 as const, lane: 2.8, start: -24, speed: 4.6, color: "#eabd3d", kind: "taxi" as const },
+    { id: "city-bus", axis: "x" as const, direction: -1 as const, lane: 2.8, start: 30, speed: 4.0, color: "#3b7e9c", kind: "bus" as const },
+    { id: "z-grid-14", axis: "z" as const, direction: 1 as const, lane: 14, start: -70, speed: 5.2, color: "#c47a5a" },
+    { id: "z-grid-m14", axis: "z" as const, direction: -1 as const, lane: -14, start: 66, speed: 5.0, color: "#7a9b6e" },
+    { id: "x-grid-14", axis: "x" as const, direction: 1 as const, lane: 14, start: -62, speed: 5.1, color: "#8b7bb0" },
+    { id: "x-grid-m14", axis: "x" as const, direction: -1 as const, lane: -14, start: 58, speed: 5.3, color: "#6a8fad" },
   ];
-  return mobile ? base.filter((_, i) => [0, 2, 8, 9, 10].includes(i)) : base;
+  return mobile ? base.filter((_, i) => [0, 1, 4, 8, 9, 10].includes(i)) : base;
 }
 
 function trafficState(worldTime: number) {
@@ -401,11 +392,12 @@ function TrafficCar({ config, worldTime, night, weather }: {
     coord.current = next;
     if (coord.current > 110) coord.current = -110;
     if (coord.current < -110) coord.current = 110;
+    // Y=0.05 keeps wheels on the asphalt surface (roads sit at ~0.01–0.02).
     if (config.axis === "z") {
-      root.position.set(config.lane, 0, coord.current);
+      root.position.set(config.lane, 0.05, coord.current);
       root.rotation.y = config.direction > 0 ? 0 : Math.PI;
     } else {
-      root.position.set(coord.current, 0, config.lane);
+      root.position.set(coord.current, 0.05, config.lane);
       root.rotation.y = config.direction > 0 ? Math.PI / 2 : -Math.PI / 2;
     }
   });
@@ -719,7 +711,8 @@ export function LivingCityScene() {
   const weather = useGameStore((s) => s.weather);
   const cityKey = useGameStore((s) => s.character?.cityKey || "lagos");
   const mobile = typeof window !== "undefined" && (window.innerWidth < 900 || "ontouchstart" in window);
-  const residents = useMemo(() => mobile ? RESIDENTS.slice(0, 6) : RESIDENTS, [mobile]);
+  // All remaining residents are important service NPCs (already trimmed list).
+  const residents = useMemo(() => RESIDENTS, []);
   const cars = useMemo(() => carConfigs(mobile), [mobile]);
   const night = worldTime < 6 || worldTime >= 19.5;
   const selectResident = (summary: ResidentSummary) => {
@@ -746,7 +739,7 @@ export function LivingCityOverlay() {
   const weather = useGameStore((s) => s.weather);
   const isCity = useGameStore((s) => s.character?.location === "city");
   const mobile = typeof window !== "undefined" && (window.innerWidth < 900 || "ontouchstart" in window);
-  const residentCount = mobile ? 6 : RESIDENTS.length;
+  const residentCount = RESIDENTS.length;
   const vehicleCount = carConfigs(mobile).length;
   if (!isCity) return null;
   return <>
