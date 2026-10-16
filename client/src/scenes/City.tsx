@@ -4,9 +4,7 @@ import { BUILDINGS } from "@life-sim/shared";
 import { useGameStore } from "../stores/gameStore";
 import { setCityBoxColliders } from "./collisionWorld";
 import { InstancedTiles, MODELS, ModelOrFallback, type TileInstance } from "./assetModels";
-
-/** Model-pack buildings: user GLBs. Front of both models faces +Z like the old boxes. */
-const BUILDING_YAW = 0;
+import { USER_APARTMENT, USER_STORE, COMMERCIAL, pickBuilding, poolFor } from "./buildingKits";
 
 /** Main avenue tiles (Kenney road kit): 10 m tiles, road runs along X, rotated 90° for the N/S avenue. */
 const AVENUE_TILE = 10;
@@ -281,7 +279,9 @@ function Building({
   style,
   seed,
   mobile,
+  residential = false,
 }: {
+  residential?: boolean;
   position: [number, number, number];
   width: number;
   depth: number;
@@ -324,11 +324,11 @@ function Building({
     return list;
   }, [width, depth, floors, floorH, style, mobile]);
 
-  // Tall non-glass blocks use the apartment model, low shop-like blocks use the store model.
-  const modelUrl =
-    floors >= 4 && style !== "glass" ? MODELS.apartment :
-    floors <= 2 && (style === "shop" || style === "classic" || style === "brick") ? MODELS.store :
-    null;
+  // Choose the kit building (houses, shops, offices, skyscrapers, plus your store/apartment) that best fits this lot.
+  const kit = useMemo(
+    () => pickBuilding(poolFor(residential ? "residential" : "commercial", floors), width, h, depth, seed),
+    [residential, floors, width, h, depth, seed],
+  );
 
   // The original procedural building. It is also the fallback while a model loads.
   const procedural = (
@@ -369,17 +369,13 @@ function Building({
 
   return (
     <group position={position}>
-      {modelUrl ? (
-        <ModelOrFallback
-          url={modelUrl}
-          fit={{ width, height: h, depth, mode: "stretch" }}
-          yaw={BUILDING_YAW}
-          shadows={!mobile}
-          fallback={procedural}
-        />
-      ) : (
-        procedural
-      )}
+      <ModelOrFallback
+        url={kit.url}
+        fit={{ width, height: h, depth, mode: "stretch" }}
+        yaw={kit.yaw}
+        shadows={!mobile}
+        fallback={procedural}
+      />
     </group>
   );
 }
@@ -402,6 +398,7 @@ export function City() {
       floors: number;
       style: BuildStyle;
       seed: number;
+      residential: boolean;
     }[] = [];
 
     const ROAD_HALF = 5.5;
@@ -435,6 +432,7 @@ export function City() {
         floors,
         style,
         seed: seed + i,
+        residential: style !== "shop" && style !== "glass" && layout.kind !== "dense" && layout.kind !== "arid",
       });
     }
     return list;
@@ -702,7 +700,7 @@ export function City() {
           <group key={`landmark-${l.key}`} position={[l.x, 0, l.z]}>
             {/* Landmark body: shop and apartments use your GLB models, everything else the original massing. */}
             {(() => {
-              const landmarkModel = l.key === "shop" ? MODELS.store : l.key === "apartments" ? MODELS.apartment : null;
+              const landmarkKit = l.key === "shop" ? USER_STORE : l.key === "apartments" ? USER_APARTMENT : pickBuilding(COMMERCIAL, l.w, h, l.d, hash(l.key));
               const facade = (
                 <>
             <mesh castShadow={!mobile} receiveShadow position={[0, h / 2, 0]}>
@@ -726,15 +724,22 @@ export function City() {
             </mesh>
                 </>
               );
-              return landmarkModel ? (
-                <ModelOrFallback
-                  url={landmarkModel}
-                  fit={{ width: l.w, height: h, depth: l.d, mode: "stretch" }}
-                  yaw={BUILDING_YAW}
-                  shadows={!mobile}
-                  fallback={facade}
-                />
-              ) : facade;
+              return (
+                <>
+                  <ModelOrFallback
+                    url={landmarkKit.url}
+                    fit={{ width: l.w, height: h, depth: l.d, mode: "stretch" }}
+                    yaw={landmarkKit.yaw}
+                    shadows={!mobile}
+                    fallback={facade}
+                  />
+                  {/* Coloured name board over the entrance so each landmark type stays recognisable. */}
+                  <mesh position={[0, 3.6, l.d / 2 + 0.1]}>
+                    <boxGeometry args={[Math.min(l.w * 0.5, 4.5), 0.7, 0.14]} />
+                    <meshStandardMaterial color={l.accent} emissive={l.accent} emissiveIntensity={isNight ? 0.55 : 0.1} />
+                  </mesh>
+                </>
+              );
             })()}
             {/* Ground plaza pad */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, l.d / 2 + 1.2]}>

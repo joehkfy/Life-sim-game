@@ -5,7 +5,13 @@ import * as THREE from "three";
 import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { CharacterAppearance } from "@life-sim/shared";
 
+/**
+ * Primary: Donghua humanoid GLB — full locomotion + emote clip set.
+ * Optional alt: Young Warrior (limited clips: stand_free/run only).
+ * Procedural Avatar remains the final safety net via Avatar.tsx error boundary.
+ */
 const MODEL_URL = "/models/characters/life-sim-donghua-base.glb";
+const ALT_MODEL_URL = "/models/characters/life-sim-young-warrior.glb";
 
 type RiggedAvatarProps = {
   appearance: CharacterAppearance;
@@ -15,6 +21,11 @@ type RiggedAvatarProps = {
   animation?: string;
 };
 
+/**
+ * Map game animation keys → clip names.
+ * Young Warrior pack ships: stand_free, run, run_armed (+ Armature suffix from glTF).
+ * Donghua base used Idle/Walk/Run/… — resolveClip() tries both naming styles.
+ */
 const ACTION_CLIPS: Record<string, string> = {
   idle: "Idle",
   walk: "Walk",
@@ -63,6 +74,98 @@ const ACTION_CLIPS: Record<string, string> = {
   brush_teeth: "BrushTeeth",
   kneel: "Kneel",
 };
+
+/** Fallback clip names if a lighter GLB (Young Warrior) is ever used. */
+const LEGACY_ACTION_CLIPS: Record<string, string> = {
+  idle: "stand_free",
+  walk: "run",
+  run: "run",
+  sleep: "stand_free",
+  waking: "stand_free",
+  stand_up: "stand_free",
+  relax: "stand_free",
+  watch_tv: "stand_free",
+  watch_tv_sit: "stand_free",
+  get_snack: "stand_free",
+  cook: "stand_free",
+  shower: "stand_free",
+  work_on_computer: "stand_free",
+  read: "stand_free",
+  sit: "stand_free",
+  phone: "stand_free",
+  phone_typing: "stand_free",
+  wave: "stand_free",
+  jump: "run",
+  land: "stand_free",
+  crouch: "stand_free",
+  drink: "stand_free",
+  open_door: "stand_free",
+  reach: "stand_free",
+  pick_up: "stand_free",
+  pickup: "stand_free",
+  carry: "stand_free",
+  put_down: "stand_free",
+  talk: "stand_free",
+  laugh: "stand_free",
+  clap: "stand_free",
+  shrug: "stand_free",
+  point: "stand_free",
+  handshake: "stand_free",
+  fist_bump: "stand_free",
+  celebrate: "run",
+  stretch: "stand_free",
+  yawn: "stand_free",
+  nod: "stand_free",
+  shake_head: "stand_free",
+  look_at: "stand_free",
+  idle_holding: "stand_free",
+  dance: "run",
+  wash_hands: "stand_free",
+  brush_teeth: "stand_free",
+  kneel: "stand_free",
+};
+
+function resolveClipName(
+  actions: Record<string, THREE.AnimationAction | null>,
+  preferred: string,
+  legacy?: string,
+): string | null {
+  const candidates = [
+    preferred,
+    `${preferred}_Armature`,
+    preferred.replace(/_Armature$/, ""),
+    legacy,
+    legacy ? `${legacy}_Armature` : null,
+  ].filter(Boolean) as string[];
+  for (const name of candidates) {
+    if (actions[name]) return name;
+  }
+  // Fuzzy: any clip whose name contains the preferred token
+  const keys = Object.keys(actions);
+  const token = preferred.toLowerCase();
+  const fuzzy = keys.find((k) => k.toLowerCase().includes(token));
+  if (fuzzy) return fuzzy;
+  if (actions.stand_free) return "stand_free";
+  if (actions.stand_free_Armature) return "stand_free_Armature";
+  if (actions.Idle) return "Idle";
+  return keys[0] || null;
+}
+
+function findBone(root: THREE.Object3D, names: string[]): THREE.Bone | undefined {
+  for (const name of names) {
+    const obj = root.getObjectByName(name);
+    if (obj && (obj as THREE.Bone).isBone) return obj as THREE.Bone;
+  }
+  // Case-insensitive fallback
+  let found: THREE.Bone | undefined;
+  root.traverse((o) => {
+    if (found) return;
+    if ((o as THREE.Bone).isBone && names.some((n) => n.toLowerCase() === o.name.toLowerCase())) {
+      found = o as THREE.Bone;
+    }
+  });
+  return found;
+}
 
 const SEATED_STATES = new Set(["relax", "watch_tv_sit", "work_on_computer", "sit"]);
 const LOCOMOTION_STATES = new Set(["walk", "run"]);
@@ -158,6 +261,7 @@ function customizeModel(
   showFace: boolean,
 ) {
   const hairStyle = Math.abs(Math.floor(appearance?.hairStyle ?? 0)) % 4;
+  const skin = skinColor(appearance);
   root.traverse((object) => {
     if (!(object as THREE.Mesh).isMesh) return;
     const mesh = object as THREE.Mesh;
@@ -167,55 +271,118 @@ function customizeModel(
     if (mesh.name.startsWith("HairStyle_")) {
       mesh.visible = Number(mesh.name.slice("HairStyle_".length)) === hairStyle;
     }
+    // Young Warrior: single hair mesh — hide for style 3 (bald-ish) by scaling visibility
+    if (mesh.name === "Mesh_Hair" || mesh.name.toLowerCase().includes("hair")) {
+      mesh.visible = hairStyle !== 3;
+    }
 
     const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     const customized = materials.map((original) => {
       const material = original.clone();
       if (!(material instanceof THREE.MeshStandardMaterial)) return material;
-      switch (material.name) {
-        case "Mat_Skin":
-        case "Mat_FingerSkin":
-        case "Mat_SkinOverlay":
-          material.color.copy(skinColor(appearance));
-          material.roughness = 0.62;
-          material.metalness = 0.02;
-          break;
-        case "Mat_Hair":
-          material.color.set(appearance?.hairColor || "#2c1810");
-          material.roughness = 0.78;
-          break;
-        case "Mat_Shirt":
-          material.color.set(shirtColor);
-          material.roughness = 0.55;
-          material.metalness = 0.04;
-          break;
-        case "Mat_Pants":
-          material.color.set(pantsColor);
-          material.roughness = 0.7;
-          break;
-        case "Mat_Iris":
-          material.color.copy(eyeColor(appearance));
-          material.roughness = 0.25;
-          material.metalness = 0.05;
-          break;
-        case "Mat_Brow":
-          material.color.set(appearance?.hairColor || "#2c1810").multiplyScalar(0.72);
-          break;
+      const matName = material.name || "";
+      const meshName = mesh.name || "";
+
+      const isSkin =
+        matName === "Mat_Skin" ||
+        matName === "Mat_FingerSkin" ||
+        matName === "Mat_SkinOverlay" ||
+        matName === "body" ||
+        matName === "head" ||
+        meshName === "Mesh_Body" ||
+        meshName === "Mesh_Head" ||
+        meshName.startsWith("Mesh_Head");
+      const isHair = matName === "Mat_Hair" || matName === "mat_hair" || meshName === "Mesh_Hair";
+      const isIris =
+        matName === "Mat_Iris" ||
+        matName === "mat_eye" ||
+        meshName.startsWith("Mesh_Iris") ||
+        meshName.toLowerCase().includes("eye");
+
+      if (isSkin) {
+        // Preserve texture maps; tint with skin tone
+        material.color.copy(skin);
+        material.roughness = Math.min(0.85, (material.roughness ?? 0.6) + 0.05);
+        material.metalness = 0.02;
+      } else if (isHair) {
+        material.color.set(appearance?.hairColor || "#2c1810");
+        material.roughness = 0.78;
+      } else if (matName === "Mat_Shirt") {
+        material.color.set(shirtColor);
+        material.roughness = 0.55;
+        material.metalness = 0.04;
+      } else if (matName === "Mat_Pants") {
+        material.color.set(pantsColor);
+        material.roughness = 0.7;
+      } else if (isIris) {
+        material.color.copy(eyeColor(appearance));
+        material.roughness = 0.25;
+        material.metalness = 0.05;
+      } else if (matName === "Mat_Brow") {
+        material.color.set(appearance?.hairColor || "#2c1810").multiplyScalar(0.72);
       }
       material.needsUpdate = true;
       return material;
     });
     mesh.material = Array.isArray(mesh.material) ? customized : customized[0];
 
-    // glTF names the character's eye and mouth nodes Mat_EyeWhite/Mat_Mouth,
-    // not Mesh_EyeWhite/Face_*. Check both forms so showFace actually works.
     if (!showFace && (
       mesh.name.startsWith("Face_") ||
+      mesh.name.startsWith("Mesh_Iris") ||
       ["Mesh_EyeWhite", "Mesh_Iris", "Mesh_Pupil", "Mesh_Brow", "Mesh_Mouth", "Mesh_SkinOverlay", "Mat_EyeWhite", "Mat_Iris", "Mat_Pupil", "Mat_Brow", "Mat_Mouth"].includes(mesh.name)
     )) {
       mesh.visible = false;
     }
   });
+
+  // Lightweight clothing colour layers only when the mesh has no shirt/pants materials
+  // (e.g. single-texture bodies). Skip when Donghua Mat_Shirt / Mat_Pants exist.
+  let hasClothingMats = false;
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const m of mats) {
+      if (m && (m.name === "Mat_Shirt" || m.name === "Mat_Pants")) hasClothingMats = true;
+    }
+  });
+  if (!hasClothingMats && !root.getObjectByName("LifeSim_ShirtOverlay")) {
+    const spine =
+      findBone(root, ["Spine3", "Spine2", "Spine1", "Chest", "spine"]) ||
+      root;
+    const shirt = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.18, 0.22, 0.42, 10),
+      new THREE.MeshStandardMaterial({
+        color: shirtColor,
+        roughness: 0.55,
+        metalness: 0.04,
+        transparent: true,
+        opacity: 0.92,
+      }),
+    );
+    shirt.name = "LifeSim_ShirtOverlay";
+    shirt.position.set(0, 0.12, 0.02);
+    spine.add(shirt);
+
+    const hip = findBone(root, ["Sacrum", "Sacrum.001", "Hips", "hips", "pelvis"]) || root;
+    const pants = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.16, 0.14, 0.38, 10),
+      new THREE.MeshStandardMaterial({
+        color: pantsColor,
+        roughness: 0.7,
+        transparent: true,
+        opacity: 0.9,
+      }),
+    );
+    pants.name = "LifeSim_PantsOverlay";
+    pants.position.set(0, -0.05, 0);
+    hip.add(pants);
+  } else {
+    const shirt = root.getObjectByName("LifeSim_ShirtOverlay") as THREE.Mesh | undefined;
+    const pants = root.getObjectByName("LifeSim_PantsOverlay") as THREE.Mesh | undefined;
+    if (shirt && shirt.material instanceof THREE.MeshStandardMaterial) shirt.material.color.set(shirtColor);
+    if (pants && pants.material instanceof THREE.MeshStandardMaterial) pants.material.color.set(pantsColor);
+  }
 }
 
 /**
@@ -250,7 +417,9 @@ export function RiggedAvatar({
 
     // Simple interaction props are children of their hand/chest bones so they
     // follow the rig rather than floating at a fixed world position.
-    const rightHand = cloned.getObjectByName("Hand_R");
+    const rightHand =
+      findBone(cloned, ["Hand_R", "hand001.R", "hand.R", "Hand.R", "mixamorigRightHand"]) ||
+      cloned.getObjectByName("Hand_R");
     if (rightHand) {
       const apple = new THREE.Group();
       apple.name = "LifeSim_FoodProp";
@@ -309,7 +478,9 @@ export function RiggedAvatar({
       phone.visible = false;
       rightHand.add(phone);
     }
-    const chest = cloned.getObjectByName("Chest");
+    const chest =
+      findBone(cloned, ["Chest", "Spine3", "Spine2", "spine"]) ||
+      cloned.getObjectByName("Chest");
     if (chest) {
       const book = new THREE.Group();
       book.name = "LifeSim_BookProp";
@@ -381,31 +552,36 @@ export function RiggedAvatar({
     return meshes;
   }, [model]);
   const bones = useMemo(() => ({
-    upperArmL: model.getObjectByName("UpperArm_L") as THREE.Bone | undefined,
-    lowerArmL: model.getObjectByName("LowerArm_L") as THREE.Bone | undefined,
-    handL: model.getObjectByName("Hand_L") as THREE.Bone | undefined,
-    upperArmR: model.getObjectByName("UpperArm_R") as THREE.Bone | undefined,
-    lowerArmR: model.getObjectByName("LowerArm_R") as THREE.Bone | undefined,
-    handR: model.getObjectByName("Hand_R") as THREE.Bone | undefined,
-    upperLegL: model.getObjectByName("UpperLeg_L") as THREE.Bone | undefined,
-    lowerLegL: model.getObjectByName("LowerLeg_L") as THREE.Bone | undefined,
-    footL: model.getObjectByName("Foot_L") as THREE.Bone | undefined,
-    upperLegR: model.getObjectByName("UpperLeg_R") as THREE.Bone | undefined,
-    lowerLegR: model.getObjectByName("LowerLeg_R") as THREE.Bone | undefined,
-    footR: model.getObjectByName("Foot_R") as THREE.Bone | undefined,
-    hairL: model.getObjectByName("HairTip_L") as THREE.Bone | undefined,
-    hairR: model.getObjectByName("HairTip_R") as THREE.Bone | undefined,
+    upperArmL: findBone(model, ["UpperArm_L", "Humerus.L", "upperarm.l", "mixamorigLeftArm"]),
+    lowerArmL: findBone(model, ["LowerArm_L", "LowerArm.L", "LowerArm.L.001", "forearm.l", "mixamorigLeftForeArm"]),
+    handL: findBone(model, ["Hand_L", "hand001.L", "hand.L", "mixamorigLeftHand"]),
+    upperArmR: findBone(model, ["UpperArm_R", "Humerus.R", "upperarm.r", "mixamorigRightArm"]),
+    lowerArmR: findBone(model, ["LowerArm_R", "LowerArm.R", "LowerArm.R.001", "forearm.r", "mixamorigRightForeArm"]),
+    handR: findBone(model, ["Hand_R", "hand001.R", "hand.R", "mixamorigRightHand"]),
+    upperLegL: findBone(model, ["UpperLeg_L", "Femur.L", "thigh.l", "mixamorigLeftUpLeg"]),
+    lowerLegL: findBone(model, ["LowerLeg_L", "Tibia.L", "Tibia.L.001", "shin.l", "mixamorigLeftLeg"]),
+    footL: findBone(model, ["Foot_L", "Foot.L", "Foot.L.001", "mixamorigLeftFoot"]),
+    upperLegR: findBone(model, ["UpperLeg_R", "Femur.R", "thigh.r", "mixamorigRightUpLeg"]),
+    lowerLegR: findBone(model, ["LowerLeg_R", "Tibia.R", "Tibia.R.001", "shin.r", "mixamorigRightLeg"]),
+    footR: findBone(model, ["Foot_R", "Foot.R", "Foot.R.001", "mixamorigRightFoot"]),
+    hairL: findBone(model, ["HairTip_L", "hair.L"]),
+    hairR: findBone(model, ["HairTip_R", "hair.R"]),
   }), [model]);
 
   const playClip = (clipName: string, loop = true, fade = 0.22) => {
-    const next = actions[clipName];
+    const resolved =
+      resolveClipName(actions as Record<string, THREE.AnimationAction | null>, clipName, LEGACY_ACTION_CLIPS[clipName]) ||
+      clipName;
+    const next = actions[resolved];
     if (!next) return;
     const prev = currentAction.current;
     if (prev === next && next.isRunning()) return;
 
     next.reset();
     next.enabled = true;
-    next.setEffectiveTimeScale(1);
+    // Walk is mapped to the run clip on Young Warrior — slow it slightly
+    const timeScale = clipName.toLowerCase().includes("walk") || resolved.toLowerCase().includes("walk") ? 0.72 : 1;
+    next.setEffectiveTimeScale(timeScale);
     next.setEffectiveWeight(1);
     next.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
     next.clampWhenFinished = !loop;
@@ -440,97 +616,90 @@ export function RiggedAvatar({
     const now = performance.now();
     if (animation !== "idle") idleLookDueAt.current = now + 7000 + Math.random() * 6000;
 
+    const preferred = ACTION_CLIPS[animation] || "Idle";
+    const legacy = LEGACY_ACTION_CLIPS[animation];
+    const clip = resolveClipName(actions as Record<string, THREE.AnimationAction | null>, preferred, legacy) || preferred;
+
+    // Prefer rich Donghua transition clips when present; otherwise jump to resolved clip.
     if (animation === "sleep" && before !== "sleep" && before !== "waking") {
       sleepStartedAt.current = now;
       idleLookDueAt.current = now + 10000;
       if (actions.LieDown) {
-        pendingLoop.current = "Sleep";
+        pendingLoop.current = resolveClipName(actions as Record<string, THREE.AnimationAction | null>, "Sleep", "Sleep") || clip;
         playClip("LieDown", false, 0.18);
       } else {
-        playClip("Sleep", true, 0.2);
+        playClip(clip, true, 0.2);
       }
       return;
     }
     if (animation === "waking") {
       wakeStartedAt.current = now;
-      playClip("WakeUp", false, 0.16);
-      pendingLoop.current = "Idle";
-      return;
-    }
-    if (animation === "stand_up") {
-      playClip("StandUp", false, 0.16);
-      pendingLoop.current = "Idle";
-      return;
-    }
-    if (animation === "crouch" && before !== "crouch") {
-      if (actions.CrouchDown) {
-        pendingLoop.current = "Crouch";
-        playClip("CrouchDown", false, 0.14);
+      if (actions.WakeUp) {
+        playClip("WakeUp", false, 0.16);
+        pendingLoop.current = resolveClipName(actions as Record<string, THREE.AnimationAction | null>, "stand_free", "Idle") || "Idle";
       } else {
-        playClip("Crouch", true, 0.18);
+        playClip(clip, true, 0.2);
       }
       return;
     }
-    if (animation === "idle" && before === "crouch" && actions.CrouchUp) {
-      pendingLoop.current = "Idle";
-      playClip("CrouchUp", false, 0.14);
+    if (animation === "stand_up") {
+      if (actions.StandUp) {
+        playClip("StandUp", false, 0.16);
+        pendingLoop.current = resolveClipName(actions as Record<string, THREE.AnimationAction | null>, "stand_free", "Idle") || "Idle";
+      } else {
+        playClip(clip, true, 0.2);
+      }
       return;
     }
-    if (before === "crouch" && isLocomotion(animation) && actions.CrouchUp) {
-      pendingLoop.current = animation === "run" ? "Run" : "Walk";
-      playClip("CrouchUp", false, 0.12);
-      return;
-    }
-
     if (animation === "walk" && !isLocomotion(before)) {
       if (actions.WalkStart) {
-        pendingLoop.current = "Walk";
+        pendingLoop.current = resolveClipName(actions as Record<string, THREE.AnimationAction | null>, "run", "Walk") || "Walk";
         playClip("WalkStart", false, 0.20);
       } else {
-        playClip("Walk", true, 0.18);
+        playClip(clip, true, 0.18);
       }
       return;
     }
     if (animation === "run" && !isLocomotion(before)) {
       if (actions.RunStart) {
-        pendingLoop.current = "Run";
+        pendingLoop.current = resolveClipName(actions as Record<string, THREE.AnimationAction | null>, "run", "Run") || "Run";
         playClip("RunStart", false, 0.16);
       } else {
-        playClip("Run", true, 0.16);
+        playClip(clip, true, 0.16);
       }
       return;
     }
     if (animation === "idle" && before === "walk" && actions.WalkStop) {
-      pendingLoop.current = "Idle";
+      pendingLoop.current = resolveClipName(actions as Record<string, THREE.AnimationAction | null>, "stand_free", "Idle") || "Idle";
       playClip("WalkStop", false, 0.16);
       return;
     }
     if (animation === "idle" && before === "run" && actions.RunStop) {
-      pendingLoop.current = "Idle";
+      pendingLoop.current = resolveClipName(actions as Record<string, THREE.AnimationAction | null>, "stand_free", "Idle") || "Idle";
       playClip("RunStop", false, 0.13);
       return;
     }
-    if (isSeated(animation) && !isSeated(before)) {
-      const target = ACTION_CLIPS[animation] || "SitIdle";
-      if (actions.SitDown) {
-        pendingLoop.current = target;
-        playClip("SitDown", false, 0.18);
-      } else {
-        playClip(target, true, 0.2);
-      }
-      return;
-    }
 
-    const clip = ACTION_CLIPS[animation] || "Idle";
     if (ONE_SHOT_STATES.has(animation)) {
-      const returnTo = isSeated(before) ? (ACTION_CLIPS[before] || "SitIdle") : "Idle";
-      pendingLoop.current = returnTo;
+      const returnKey = isSeated(before) ? before : "idle";
+      pendingLoop.current =
+        resolveClipName(
+          actions as Record<string, THREE.AnimationAction | null>,
+          ACTION_CLIPS[returnKey] || "Idle",
+          LEGACY_ACTION_CLIPS[returnKey],
+        ) || "Idle";
       playClip(clip, false, 0.16);
       return;
     }
-    // The transition's completion handler may already have started Idle;
-    // avoid resetting that newly-started cycle when gameplay reports idle.
-    if (animation === "idle" && currentAction.current?.getClip().name === "Idle" && currentAction.current.isRunning()) return;
+
+    const runningName = currentAction.current?.getClip()?.name || "";
+    if (
+      animation === "idle" &&
+      currentAction.current?.isRunning() &&
+      (runningName === "Idle" || runningName.includes("stand_free"))
+    ) {
+      return;
+    }
     playClip(clip, true, animation === "walk" || animation === "run" ? 0.15 : 0.22);
   }, [animation, actions]);
 
@@ -751,3 +920,5 @@ export function RiggedAvatar({
 }
 
 useGLTF.preload(MODEL_URL);
+// Optional alt body (limited clips) — preloaded only if needed later
+void ALT_MODEL_URL;

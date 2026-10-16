@@ -24,6 +24,7 @@ import {
   buyProperty,
   leaveHome,
 } from "../game/world/buildingService";
+import { useLocationActivity } from "../game/world/locationActivityService";
 import {
   listCountries,
   listStatesByCountry,
@@ -319,6 +320,11 @@ router.post("/location/enter", actionLimit, handle(async (req, res) => {
 
 router.post("/location/exit", actionLimit, handle(async (req, res) => {
   res.json(await exitToCity(await charId(req)));
+}));
+
+router.post("/location/activity", actionLimit, handle(async (req, res) => {
+  const action = String((req.body as { action?: string })?.action || "");
+  res.json(await useLocationActivity(await charId(req), action));
 }));
 
 router.get("/properties", handle(async (_req, res) => {

@@ -226,6 +226,100 @@ function PersonalHomePrompt() {
   );
 }
 
+/** In-building services: hospital / gym / school / restaurant / shop */
+function InteriorActionPrompt() {
+  const character = useGameStore((s) => s.character);
+  const token = useGameStore((s) => s.token);
+  const setCharacter = useGameStore((s) => s.setCharacter);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  if (!character || !character.location || character.location === "city") return null;
+  if (String(character.location).startsWith("home_")) return null;
+
+  const loc = character.location;
+  type Act = { id: string; label: string; kind: "api" | "phone"; action?: string; app?: string };
+  const acts: Act[] = [];
+  if (loc === "hospital") acts.push({ id: "heal", label: "Get checkup (−$25, +health)", kind: "api", action: "heal" });
+  if (loc === "gym") acts.push({ id: "workout", label: "Work out (−energy, +fitness)", kind: "api", action: "workout" });
+  if (loc === "school" || loc === "university") acts.push({ id: "study", label: "Study (−energy, +intelligence)", kind: "api", action: "study" });
+  if (loc === "restaurant") acts.push({ id: "eat", label: "Order a meal (−$18)", kind: "api", action: "eat" });
+  if (loc === "shop" || loc.includes("shop")) acts.push({ id: "shop", label: "Open shop on phone", kind: "phone", app: "shop" });
+  if (acts.length === 0) return null;
+
+  async function run(a: Act) {
+    if (!token || !character || busy) return;
+    if (a.kind === "phone") {
+      window.dispatchEvent(new CustomEvent("life-sim:open-phone", { detail: { app: a.app || "shop" } }));
+      return;
+    }
+    setBusy(true);
+    setMsg("");
+    try {
+      const API = import.meta.env.VITE_SERVER_URL || "";
+      const r = await fetch(`${API}/api/game/location/activity`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: a.action }),
+      });
+      const d = await r.json();
+      if (!r.ok) {
+        setMsg(d.error || "Failed");
+        return;
+      }
+      setMsg(d.message || "Done");
+      const cr = await fetch(`${API}/api/game/character`, { headers: { Authorization: `Bearer ${token}` } });
+      if (cr.ok) setCharacter(await cr.json());
+    } catch {
+      setMsg("Network error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 130,
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 16,
+        pointerEvents: "auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        alignItems: "center",
+        maxWidth: "min(360px, calc(100vw - 24px))",
+      }}
+    >
+      {acts.map((a) => (
+        <button
+          key={a.id}
+          type="button"
+          disabled={busy}
+          onClick={() => void run(a)}
+          style={{
+            padding: "10px 16px",
+            background: "rgba(12,16,24,0.88)",
+            border: "1px solid rgba(255,255,255,0.14)",
+            borderRadius: 12,
+            color: "#f2f4f8",
+            fontWeight: 600,
+            fontSize: 13,
+            backdropFilter: "blur(12px)",
+            cursor: busy ? "wait" : "pointer",
+            width: "100%",
+          }}
+        >
+          {busy ? "…" : a.label}
+        </button>
+      ))}
+      {msg && <div style={{ fontSize: 12, color: "#a8e6cf", textShadow: "0 1px 4px #000" }}>{msg}</div>}
+    </div>
+  );
+}
+
 function ExitPrompt() {
   const character = useGameStore((s) => s.character);
   const token = useGameStore((s) => s.token);
@@ -380,6 +474,7 @@ function HomeInteractionPrompt() {
   );
 }
 
+/** Emotes map 1:1 to Donghua GLB clips (see RiggedAvatar ACTION_CLIPS). */
 const EMOTE_OPTIONS: Array<{ animation: string; label: string; icon: string }> = [
   { animation: "wave", label: "Wave", icon: "👋" },
   { animation: "talk", label: "Talk", icon: "💬" },
@@ -391,19 +486,21 @@ const EMOTE_OPTIONS: Array<{ animation: string; label: string; icon: string }> =
   { animation: "stretch", label: "Stretch", icon: "🧘" },
   { animation: "yawn", label: "Yawn", icon: "🥱" },
   { animation: "drink", label: "Drink", icon: "🥤" },
-  { animation: "phone_typing", label: "Text", icon: "📱" },
+  { animation: "phone", label: "Phone", icon: "📱" },
+  { animation: "phone_typing", label: "Text", icon: "⌨️" },
   { animation: "nod", label: "Nod", icon: "🙂" },
   { animation: "shake_head", label: "No", icon: "🙅" },
   { animation: "look_at", label: "Look around", icon: "👀" },
   { animation: "handshake", label: "Handshake", icon: "🤝" },
   { animation: "fist_bump", label: "Fist bump", icon: "👊" },
   { animation: "dance", label: "Dance", icon: "💃" },
+  { animation: "sit", label: "Sit", icon: "🪑" },
   { animation: "crouch", label: "Crouch", icon: "🧎" },
   { animation: "kneel", label: "Kneel", icon: "🙇" },
-  { animation: "pick_up", label: "Pick up box", icon: "📦" },
-  { animation: "carry", label: "Carry box", icon: "🧰" },
+  { animation: "pick_up", label: "Pick up", icon: "📦" },
+  { animation: "carry", label: "Carry", icon: "🧰" },
   { animation: "put_down", label: "Put down", icon: "⬇️" },
-  { animation: "idle_holding", label: "Hold box", icon: "📦" },
+  { animation: "idle_holding", label: "Hold item", icon: "📦" },
   { animation: "wash_hands", label: "Wash hands", icon: "🧼" },
   { animation: "brush_teeth", label: "Brush teeth", icon: "🪥" },
 ];
@@ -448,6 +545,16 @@ export function World() {
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [phoneApp, setPhoneApp] = useState<PhoneAppId>("home");
 
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const app = (e as CustomEvent<{ app?: PhoneAppId }>).detail?.app || "shop";
+      setPhoneApp(app);
+      setPhoneOpen(true);
+    };
+    window.addEventListener("life-sim:open-phone", onOpen);
+    return () => window.removeEventListener("life-sim:open-phone", onOpen);
+  }, []);
+
   const onInteract = useCallback(() => {
     // Mobile USE can open phone map or stay for future interact
   }, []);
@@ -474,6 +581,7 @@ export function World() {
       <BuildingPrompt />
       <PersonalHomePrompt />
       <ExitPrompt />
+      <InteriorActionPrompt />
       <HomeInteractionPrompt />
       <EmotePanel isTouch={isTouch} />
 
