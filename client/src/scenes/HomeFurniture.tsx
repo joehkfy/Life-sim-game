@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import * as THREE from "three";
+import { AssetBoundary, FittedModel, MODELS, type ModelFit } from "./assetModels";
 
 export interface HomeFurnitureItem {
   id: string;
@@ -34,7 +36,7 @@ function LegSet({ positions, height = 0.8, color = darkWood }: { positions: Arra
   return <>{positions.map(([x, z], index) => <Box key={index} position={[x, height / 2, z]} size={[0.13, height, 0.13]} color={color} />)}</>;
 }
 
-function FurnitureShape({ item }: { item: HomeFurnitureItem }) {
+function LegacyFurnitureShape({ item }: { item: HomeFurnitureItem }) {
   const key = item.furnitureKey;
   if (key === "bed_basic") return <group>
     <Box position={[0, 0.28, 0]} size={[3.1, 0.45, 4.2]} color={darkWood} />
@@ -125,6 +127,65 @@ function FurnitureShape({ item }: { item: HomeFurnitureItem }) {
   </group>;
 
   return null;
+}
+
+function Part({ url, fit, x = 0, y = 0, z = 0, yaw = 0 }: { url: string; fit: ModelFit; x?: number; y?: number; z?: number; yaw?: number }) {
+  return <group position={[x, y, z]}><FittedModel url={url} fit={fit} yaw={yaw} /></group>;
+}
+
+/** Furniture built from the Kenney furniture kit. Models face +Z with backs toward -Z, like the old boxes. */
+function ModelFurnitureShape({ item }: { item: HomeFurnitureItem }) {
+  switch (item.furnitureKey) {
+    case "bed_basic":
+      return <Part url={MODELS.bed} fit={{ width: 3.1 }} />;
+    case "sofa_basic":
+      return <Part url={MODELS.sofa} fit={{ width: 3.2 }} />;
+    case "tv_basic":
+      return <group>
+        <Part url={MODELS.tvCabinet} fit={{ width: 2.6 }} />
+        <Part url={MODELS.tv} fit={{ width: 1.9 }} y={1.0} z={-0.05} />
+      </group>;
+    case "fridge_basic":
+      return <Part url={MODELS.fridge} fit={{ height: 2.8 }} />;
+    case "stove_basic":
+      return <Part url={MODELS.stove} fit={{ height: 1.3 }} />;
+    case "shower_basic":
+      return <Part url={MODELS.shower} fit={{ height: 3.0 }} />;
+    case "lamp_basic":
+      return <group>
+        <Part url={MODELS.floorLamp} fit={{ height: 2.6 }} />
+        {item.isOn !== false && <pointLight position={[0, 2.0, 0]} intensity={0.45} color="#ffd993" distance={8} />}
+      </group>;
+    case "desk_basic":
+      return <group>
+        <Part url={MODELS.desk} fit={{ width: 2.6 }} />
+        <Part url={MODELS.screen} fit={{ width: 1.0 }} y={1.35} z={-0.3} />
+        <Part url={MODELS.keyboard} fit={{ width: 0.8 }} y={1.35} z={0.2} />
+        <Part url={MODELS.deskChair} fit={{ height: 1.5 }} z={1.2} />
+      </group>;
+    case "dining_table":
+      return <group>
+        <Part url={MODELS.table} fit={{ width: 2.9 }} />
+        <Part url={MODELS.chair} fit={{ height: 1.3 }} x={-1.85} yaw={Math.PI / 2} />
+        <Part url={MODELS.chair} fit={{ height: 1.3 }} x={1.85} yaw={-Math.PI / 2} />
+      </group>;
+    case "bookshelf_basic":
+      return <Part url={MODELS.bookcase} fit={{ height: 2.7 }} />;
+    default:
+      throw new Error("no model for " + item.furnitureKey);
+  }
+}
+
+/** Kenney model when available; the original box furniture while loading or if a file is missing. */
+function FurnitureShape({ item }: { item: HomeFurnitureItem }) {
+  const legacy = <LegacyFurnitureShape item={item} />;
+  return (
+    <AssetBoundary fallback={legacy}>
+      <Suspense fallback={legacy}>
+        <ModelFurnitureShape item={item} />
+      </Suspense>
+    </AssetBoundary>
+  );
 }
 
 export function HomeFurnitureObject({ propertyId, item }: Props) {

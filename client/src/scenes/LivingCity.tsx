@@ -5,6 +5,10 @@ import * as THREE from "three";
 import type { CharacterAppearance } from "@life-sim/shared";
 import { useGameStore } from "../stores/gameStore";
 import { RiggedAvatar } from "./RiggedAvatar";
+import { MODELS, ModelOrFallback } from "./assetModels";
+
+/** Model front faces +Z (verified from the Kenney wheel/grill node positions). Set to Math.PI if any model drives backwards. */
+const VEHICLE_YAW = 0;
 
 /**
  * Local ambient simulation for the city: scheduled residents, traffic signals,
@@ -405,8 +409,16 @@ function TrafficCar({ config, worldTime, night, weather }: {
       root.rotation.y = config.direction > 0 ? Math.PI / 2 : -Math.PI / 2;
     }
   });
-  return (
-    <group ref={group} position={config.axis === "z" ? [config.lane, 0, config.start] : [config.start, 0, config.lane]}>
+  // Real vehicle models (Kenney car kit + your sedan). Taxi/bus keep their roles; the rest vary by id.
+  const idHash = Array.from(config.id).reduce((acc, ch) => (acc * 31 + ch.charCodeAt(0)) >>> 0, 7);
+  const carPool = [MODELS.sedan, MODELS.hatchback, MODELS.suv, MODELS.sedanCustom, MODELS.sedanSports, MODELS.suvLuxury, MODELS.van];
+  const modelUrl = config.kind === "taxi" ? MODELS.taxi : config.kind === "bus" ? MODELS.delivery : carPool[idHash % carPool.length];
+  const modelLength = config.kind === "bus" ? 3.4 : 2.4;
+  const lightZ = modelLength / 2 + 0.01;
+
+  // Original box-built vehicle: shown while the model loads and if it fails to load.
+  const procedural = (
+    <>
       <mesh position={[0, config.kind === "bus" ? 0.67 : 0.48, 0]} castShadow>
         <boxGeometry args={[config.kind === "bus" ? 1.48 : 1.22, config.kind === "bus" ? 0.82 : 0.48, config.kind === "bus" ? 3.7 : config.kind === "taxi" ? 2.0 : 2.3]} />
         <meshStandardMaterial color={config.color} roughness={0.48} metalness={0.12} />
@@ -434,6 +446,27 @@ function TrafficCar({ config, worldTime, night, weather }: {
           ))}
         </group>
       ))}
+    </>
+  );
+
+  return (
+    <group ref={group} position={config.axis === "z" ? [config.lane, 0, config.start] : [config.start, 0, config.lane]}>
+      <ModelOrFallback url={modelUrl} fit={{ depth: modelLength }} yaw={VEHICLE_YAW} shadows fallback={procedural} />
+      {/* Light glows sit just outside the model's bumpers so night driving and braking still read. */}
+      <>
+        {[-0.4, 0.4].map((x) => (
+          <group key={x}>
+            <mesh position={[x, 0.5, lightZ]}>
+              <boxGeometry args={[0.16, 0.1, 0.03]} />
+              <meshStandardMaterial color="#fff2c4" emissive="#ffe7a0" emissiveIntensity={night ? 2.3 : 0.0} transparent opacity={night ? 1 : 0} />
+            </mesh>
+            <mesh position={[x, 0.5, -lightZ]}>
+              <boxGeometry args={[0.16, 0.1, 0.03]} />
+              <meshStandardMaterial color="#d94135" emissive="#d94135" emissiveIntensity={isStopped ? 1.6 : night ? 0.8 : 0.0} transparent opacity={isStopped || night ? 1 : 0} />
+            </mesh>
+          </group>
+        ))}
+      </>
     </group>
   );
 }

@@ -3,6 +3,86 @@ import * as THREE from "three";
 import { BUILDINGS } from "@life-sim/shared";
 import { useGameStore } from "../stores/gameStore";
 import { setCityBoxColliders } from "./collisionWorld";
+import { InstancedTiles, MODELS, ModelOrFallback, type TileInstance } from "./assetModels";
+
+/** Model-pack buildings: user GLBs. Front of both models faces +Z like the old boxes. */
+const BUILDING_YAW = 0;
+
+/** Main avenue tiles (Kenney road kit): 10 m tiles, road runs along X, rotated 90° for the N/S avenue. */
+const AVENUE_TILE = 10;
+const AVENUE_TILES: TileInstance[] = (() => {
+  const list: TileInstance[] = [];
+  for (let i = -35; i <= 35; i++) {
+    if (i === 0) continue;
+    list.push({ x: i * AVENUE_TILE, z: 0, rotY: 0 });
+    list.push({ x: 0, z: i * AVENUE_TILE, rotY: Math.PI / 2 });
+  }
+  return list;
+})();
+
+function CityTree({ kind, mobile, index }: { kind: LayoutKind; mobile: boolean; index: number }) {
+  const tropical = kind === "tropical";
+  const arid = kind === "arid";
+  const pool = tropical
+    ? [MODELS.palmTall, MODELS.palmDetailed, MODELS.treeFat]
+    : arid
+      ? [MODELS.palmDetailed, MODELS.treeDefault]
+      : kind === "classic"
+        ? [MODELS.treeOak, MODELS.treeDetailed, MODELS.treePine]
+        : [MODELS.treeOak, MODELS.treeDefault, MODELS.treeDetailed, MODELS.treeFat];
+  const url = pool[index % pool.length];
+  const height = tropical ? 5.2 : 4.2;
+  const fallback = (
+    <group>
+      <mesh position={[0, tropical ? 1.1 : 0.6, 0]} castShadow={!mobile}>
+        <cylinderGeometry args={[tropical ? 0.12 : 0.15, tropical ? 0.18 : 0.2, tropical ? 2.2 : 1.2, 6]} />
+        <meshStandardMaterial color="#5c4030" />
+      </mesh>
+      <mesh position={[0, tropical ? 2.5 : 1.6, 0]} castShadow={!mobile}>
+        <sphereGeometry args={[tropical ? 1.15 : 0.9, mobile ? 6 : 10, mobile ? 6 : 10]} />
+        <meshStandardMaterial color={arid ? "#5a6b3a" : "#2d6b3a"} />
+      </mesh>
+    </group>
+  );
+  return <ModelOrFallback url={url} fit={{ height }} yaw={(index * 2.399) % (Math.PI * 2)} shadows={!mobile} fallback={fallback} />;
+}
+
+/** Bushes, flowers and rocks around the central park (Kenney nature kit). */
+function ParkDecor({ radius, seed, mobile }: { radius: number; seed: number; mobile: boolean }) {
+  const items = useMemo(() => {
+    const list: { url: string; x: number; z: number; h: number; yaw: number }[] = [];
+    const bushes = [MODELS.bush, MODELS.bushLarge, MODELS.bushDetailed];
+    const flowers = [MODELS.flowerRed, MODELS.flowerYellow, MODELS.flowerPurple];
+    const rocks = [MODELS.rockSmallA, MODELS.rockSmallB, MODELS.rockLarge];
+    const nBush = mobile ? 6 : 14;
+    const nFlower = mobile ? 8 : 20;
+    const nRock = mobile ? 2 : 6;
+    const place = (n: number, pool: string[], h: number, rMin: number, rMax: number, salt: number) => {
+      for (let i = 0; i < n; i++) {
+        const a = rand(seed + salt + i * 7) * Math.PI * 2;
+        const d = radius * (rMin + rand(seed + salt + i * 13) * (rMax - rMin));
+        const x = Math.cos(a) * d;
+        const z = Math.sin(a) * d;
+        // Keep the crossing stone paths (|x| or |z| < 1.2) and bench area clear.
+        if (Math.abs(x) < 1.6 || Math.abs(z) < 1.6) continue;
+        list.push({ url: pool[i % pool.length], x, z, h, yaw: rand(seed + salt + i) * Math.PI * 2 });
+      }
+    };
+    place(nBush, bushes, 1.1, 0.35, 0.95, 500);
+    place(nFlower, flowers, 0.5, 0.25, 0.9, 700);
+    place(nRock, rocks, 0.7, 0.5, 0.95, 900);
+    return list;
+  }, [radius, seed, mobile]);
+  return (
+    <group>
+      {items.map((it, i) => (
+        <group key={i} position={[it.x, 0.03, it.z]}>
+          <ModelOrFallback url={it.url} fit={{ height: it.h }} yaw={it.yaw} shadows={false} />
+        </group>
+      ))}
+    </group>
+  );
+}
 
 /** Distinct landmark colors so hospital/school/etc are readable on the map. */
 const LANDMARK_STYLE: Record<string, { color: string; accent: string; floors: number; w: number; d: number }> = {
@@ -244,8 +324,15 @@ function Building({
     return list;
   }, [width, depth, floors, floorH, style, mobile]);
 
-  return (
-    <group position={position}>
+  // Tall non-glass blocks use the apartment model, low shop-like blocks use the store model.
+  const modelUrl =
+    floors >= 4 && style !== "glass" ? MODELS.apartment :
+    floors <= 2 && (style === "shop" || style === "classic" || style === "brick") ? MODELS.store :
+    null;
+
+  // The original procedural building. It is also the fallback while a model loads.
+  const procedural = (
+    <>
       <mesh castShadow={!mobile} receiveShadow position={[0, h / 2, 0]}>
         <boxGeometry args={[width, h, depth]} />
         <meshStandardMaterial
@@ -276,6 +363,22 @@ function Building({
             <meshStandardMaterial color={isNight ? "#ffe9b3" : "#c8e0f0"} emissive="#ffcc77" emissiveIntensity={isNight ? 1.0 : 0.03} />
           </mesh>
         ) : null
+      )}
+    </>
+  );
+
+  return (
+    <group position={position}>
+      {modelUrl ? (
+        <ModelOrFallback
+          url={modelUrl}
+          fit={{ width, height: h, depth, mode: "stretch" }}
+          yaw={BUILDING_YAW}
+          shadows={!mobile}
+          fallback={procedural}
+        />
+      ) : (
+        procedural
       )}
     </group>
   );
@@ -394,15 +497,8 @@ export function City() {
   const neighbourhoodRoads = Array.from({ length: 24 }, (_, i) => 35 + i * 12);
   const localStreets = layout.streets.filter((s) => Math.abs(s) > 5);
 
-  return (
-    <group>
-      {/* Ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
-        <planeGeometry args={[worldSize, worldSize]} />
-        <meshStandardMaterial color={theme.ground} roughness={0.95} />
-      </mesh>
-
-      {/* Main roads */}
+  const oldAvenue = (
+    <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow>
         <planeGeometry args={[10, worldSize]} />
         <meshStandardMaterial color={theme.road} roughness={0.9} />
@@ -424,6 +520,31 @@ export function City() {
           <meshStandardMaterial color="#e4d7a0" roughness={0.82} />
         </mesh>
       ))}
+    </>
+  );
+
+  return (
+    <group>
+      {/* Ground */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
+        <planeGeometry args={[worldSize, worldSize]} />
+        <meshStandardMaterial color={theme.ground} roughness={0.95} />
+      </mesh>
+
+      {/* Main avenues: Kenney road tiles, falling back to the original flat asphalt + markings. */}
+      <InstancedTiles url={MODELS.roadStraight} tiles={AVENUE_TILES} size={AVENUE_TILE} fallback={oldAvenue} />
+      <ModelOrFallback
+        url={MODELS.roadCrossroad}
+        fit={{ width: AVENUE_TILE, depth: AVENUE_TILE, mode: "stretch" }}
+        shadows={false}
+        fallback={
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.021, 0]} receiveShadow>
+            <planeGeometry args={[AVENUE_TILE, AVENUE_TILE]} />
+            <meshStandardMaterial color={theme.road} roughness={0.9} />
+          </mesh>
+        }
+      />
+
       {/* Local streets from the layout variant (country/city profile). */}
       {localStreets.map((roadX) => (
         <group key={`local-street-x-${roadX}`}>
@@ -579,14 +700,14 @@ export function City() {
         const h = l.floors * 3.1;
         return (
           <group key={`landmark-${l.key}`} position={[l.x, 0, l.z]}>
+            {/* Landmark body: shop and apartments use your GLB models, everything else the original massing. */}
+            {(() => {
+              const landmarkModel = l.key === "shop" ? MODELS.store : l.key === "apartments" ? MODELS.apartment : null;
+              const facade = (
+                <>
             <mesh castShadow={!mobile} receiveShadow position={[0, h / 2, 0]}>
               <boxGeometry args={[l.w, h, l.d]} />
               <meshStandardMaterial color={l.color} roughness={0.68} metalness={l.key === "university" ? 0.2 : 0.06} />
-            </mesh>
-            {/* Ground plaza pad */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, l.d / 2 + 1.2]}>
-              <planeGeometry args={[l.w + 2, 3.2]} />
-              <meshStandardMaterial color="#8a8680" roughness={0.94} />
             </mesh>
             {/* Entrance canopy */}
             <mesh position={[0, 2.4, l.d / 2 + 0.6]}>
@@ -602,6 +723,23 @@ export function City() {
             <mesh position={[0, h * 0.72, l.d / 2 + 0.06]}>
               <boxGeometry args={[l.w * 0.75, 0.7, 0.1]} />
               <meshStandardMaterial color={l.accent} emissive={l.accent} emissiveIntensity={isNight ? 0.55 : 0.08} />
+            </mesh>
+                </>
+              );
+              return landmarkModel ? (
+                <ModelOrFallback
+                  url={landmarkModel}
+                  fit={{ width: l.w, height: h, depth: l.d, mode: "stretch" }}
+                  yaw={BUILDING_YAW}
+                  shadows={!mobile}
+                  fallback={facade}
+                />
+              ) : facade;
+            })()}
+            {/* Ground plaza pad */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, l.d / 2 + 1.2]}>
+              <planeGeometry args={[l.w + 2, 3.2]} />
+              <meshStandardMaterial color="#8a8680" roughness={0.94} />
             </mesh>
             {/* Sign pole at street edge */}
             <mesh position={[l.w * 0.45, 1.6, l.d / 2 + 2.4]}>
@@ -708,16 +846,10 @@ export function City() {
 
       {trees.map(([x, z], i) => (
         <group key={i} position={[x, 0, z]}>
-          <mesh position={[0, layout.kind === "tropical" ? 1.1 : 0.6, 0]} castShadow={!mobile}>
-            <cylinderGeometry args={[layout.kind === "tropical" ? 0.12 : 0.15, layout.kind === "tropical" ? 0.18 : 0.2, layout.kind === "tropical" ? 2.2 : 1.2, 6]} />
-            <meshStandardMaterial color="#5c4030" />
-          </mesh>
-          <mesh position={[0, layout.kind === "tropical" ? 2.5 : 1.6, 0]} castShadow={!mobile}>
-            <sphereGeometry args={[layout.kind === "tropical" ? 1.15 : 0.9, mobile ? 6 : 10, mobile ? 6 : 10]} />
-            <meshStandardMaterial color={layout.kind === "arid" ? "#5a6b3a" : "#2d6b3a"} />
-          </mesh>
+          <CityTree kind={layout.kind} mobile={mobile} index={i} />
         </group>
       ))}
+      <ParkDecor radius={layout.parkRadius} seed={seed} mobile={mobile} />
 
       {/* Street lamps — real point lights at night on all devices (weaker on mobile). */}
       {(mobile ? [0, 1, 2, 3] : [0, 1, 2, 3, 4, 5, 6, 7]).map((i) => {
