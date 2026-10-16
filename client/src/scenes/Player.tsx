@@ -408,7 +408,11 @@ export function Player({ appearance, initialPosition, initialRotation = 0 }: Pla
       const run = keys.run || mobileRun;
       let vehicleSpeed = 0;
       try { vehicleSpeed = Number(localStorage.getItem("life-sim-vehicle-speed") || 0); } catch { /* ignore */ }
-      const speed = (run ? RUN_SPEED : MOVE_SPEED) + (vehicleSpeed > 0 ? vehicleSpeed * 0.12 : 0);
+      // When a stolen/owned car is active, vehicleSpeed is set high (18–28) → real drive feel
+      const driving = vehicleSpeed >= 10;
+      const speed = driving
+        ? (run ? vehicleSpeed * 1.35 : vehicleSpeed)
+        : (run ? RUN_SPEED : MOVE_SPEED) + (vehicleSpeed > 0 ? vehicleSpeed * 0.12 : 0);
       const moveDir = new THREE.Vector3(0, 0, 0);
       if (keys.forward) moveDir.z -= 1;
       if (keys.backward) moveDir.z += 1;

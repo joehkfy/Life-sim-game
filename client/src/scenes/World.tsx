@@ -8,6 +8,7 @@ import { Interior } from "./Interior";
 import { Player } from "./Player";
 import { OtherPlayer } from "./OtherPlayer";
 import { LivingCityScene, LivingCityOverlay } from "./LivingCity";
+import { DriveCars } from "./DriveCars";
 import { useGameStore } from "../stores/gameStore";
 import { useInputStore } from "../stores/inputStore";
 import { HUD } from "../components/HUD";
@@ -42,6 +43,7 @@ function Scene() {
           <City />
           <PlayerBuildings />
           <LivingCityScene />
+          <DriveCars />
         </>
       )}
       {inInterior && <Interior locationKey={character.location} />}
@@ -556,7 +558,8 @@ export function World() {
   }, []);
 
   const onInteract = useCallback(() => {
-    // Mobile USE can open phone map or stay for future interact
+    // Mobile USE: steal/enter car, exit car, future world interacts
+    window.dispatchEvent(new CustomEvent("life-sim:interact"));
   }, []);
 
   return (

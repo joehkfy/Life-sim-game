@@ -8,6 +8,20 @@ import { USER_APARTMENT, USER_STORE, COMMERCIAL, pickBuilding, poolFor } from ".
 
 /** Main avenue tiles (Kenney road kit): 10 m tiles, road runs along X, rotated 90° for the N/S avenue. */
 const AVENUE_TILE = 10;
+
+const LOCAL_STREET_TILES: TileInstance[] = (() => {
+  const streets = [-42, -28, -14, 14, 28, 42];
+  const list: TileInstance[] = [];
+  for (const s of streets) {
+    for (let i = -12; i <= 12; i++) {
+      if (i === 0) continue;
+      list.push({ x: s, z: i * AVENUE_TILE, rotY: Math.PI / 2 });
+      list.push({ x: i * AVENUE_TILE, z: s, rotY: 0 });
+    }
+  }
+  return list;
+})();
+
 const AVENUE_TILES: TileInstance[] = (() => {
   const list: TileInstance[] = [];
   for (let i = -35; i <= 35; i++) {
@@ -84,14 +98,14 @@ function ParkDecor({ radius, seed, mobile }: { radius: number; seed: number; mob
 
 /** Distinct landmark colors so hospital/school/etc are readable on the map. */
 const LANDMARK_STYLE: Record<string, { color: string; accent: string; floors: number; w: number; d: number }> = {
-  shop: { color: "#6b5b95", accent: "#f0c14b", floors: 2, w: 8, d: 7 },
-  restaurant: { color: "#c45c48", accent: "#f5e6c8", floors: 2, w: 8, d: 7 },
-  school: { color: "#3d7ea6", accent: "#e8f0f8", floors: 3, w: 12, d: 10 },
-  university: { color: "#2f5d8a", accent: "#d4e4f7", floors: 4, w: 14, d: 11 },
-  hospital: { color: "#e8eef4", accent: "#d64545", floors: 4, w: 12, d: 10 },
-  police: { color: "#2c3e6b", accent: "#f0c14b", floors: 2, w: 9, d: 8 },
-  gym: { color: "#3a7d6a", accent: "#b8f0d8", floors: 2, w: 9, d: 8 },
-  apartments: { color: "#8a7b6a", accent: "#d4c4b0", floors: 5, w: 10, d: 9 },
+  shop: { color: "#6b5b95", accent: "#f0c14b", floors: 3, w: 8, d: 7 },
+  restaurant: { color: "#c45c48", accent: "#f5e6c8", floors: 3, w: 8, d: 7 },
+  school: { color: "#3d7ea6", accent: "#e8f0f8", floors: 5, w: 12, d: 10 },
+  university: { color: "#2f5d8a", accent: "#d4e4f7", floors: 8, w: 14, d: 11 },
+  hospital: { color: "#e8eef4", accent: "#d64545", floors: 10, w: 12, d: 10 },
+  police: { color: "#2c3e6b", accent: "#f0c14b", floors: 5, w: 9, d: 8 },
+  gym: { color: "#3a7d6a", accent: "#b8f0d8", floors: 4, w: 9, d: 8 },
+  apartments: { color: "#8a7b6a", accent: "#d4c4b0", floors: 14, w: 10, d: 9 },
 };
 
 function isMobile() {
@@ -169,7 +183,7 @@ const LAYOUTS: Record<LayoutKind, LayoutProfile> = {
       [-36, -36], [36, -36], [-36, 36],
     ],
     streets: [-36, -24, -12, 12, 24, 36],
-    minFloors: 4, maxFloors: 10, widthMin: 6, widthSpan: 5, depthMin: 6, depthSpan: 4,
+    minFloors: 8, maxFloors: 28, widthMin: 6, widthSpan: 5, depthMin: 6, depthSpan: 4,
     parkRadius: 10, treeCount: 8,
   },
   suburban: {
@@ -181,7 +195,7 @@ const LAYOUTS: Record<LayoutKind, LayoutProfile> = {
       [-45, 0], [45, -15], [-15, -45], [15, 45],
     ],
     streets: [-45, -30, -15, 15, 30, 45],
-    minFloors: 1, maxFloors: 4, widthMin: 7, widthSpan: 5, depthMin: 7, depthSpan: 4,
+    minFloors: 3, maxFloors: 12, widthMin: 7, widthSpan: 5, depthMin: 7, depthSpan: 4,
     parkRadius: 16, treeCount: 28,
   },
   coastal: {
@@ -193,7 +207,7 @@ const LAYOUTS: Record<LayoutKind, LayoutProfile> = {
       [-42, 0], [-42, 14], [42, 14],
     ],
     streets: [-42, -28, -14, 14, 28, 42],
-    minFloors: 2, maxFloors: 6, widthMin: 6, widthSpan: 5, depthMin: 6, depthSpan: 4,
+    minFloors: 6, maxFloors: 18, widthMin: 6, widthSpan: 5, depthMin: 6, depthSpan: 4,
     parkRadius: 14, treeCount: 18,
   },
   arid: {
@@ -205,7 +219,7 @@ const LAYOUTS: Record<LayoutKind, LayoutProfile> = {
       [-36, 0], [36, 0], [0, -36], [0, 36],
     ],
     streets: [-36, -22, -8, 8, 22, 36],
-    minFloors: 3, maxFloors: 9, widthMin: 7, widthSpan: 6, depthMin: 7, depthSpan: 5,
+    minFloors: 8, maxFloors: 24, widthMin: 7, widthSpan: 6, depthMin: 7, depthSpan: 5,
     parkRadius: 8, treeCount: 4,
   },
   tropical: {
@@ -218,7 +232,7 @@ const LAYOUTS: Record<LayoutKind, LayoutProfile> = {
       [-13, -39], [13, -39], [-13, 39], [13, 39],
     ],
     streets: [-39, -26, -13, 13, 26, 39],
-    minFloors: 2, maxFloors: 6, widthMin: 6, widthSpan: 5, depthMin: 6, depthSpan: 4,
+    minFloors: 6, maxFloors: 18, widthMin: 6, widthSpan: 5, depthMin: 6, depthSpan: 4,
     parkRadius: 15, treeCount: 24,
   },
   classic: {
@@ -230,7 +244,7 @@ const LAYOUTS: Record<LayoutKind, LayoutProfile> = {
       [-38, -12], [38, 12], [-12, -38], [12, 38],
     ],
     streets: [-38, -25, -12, 12, 25, 38],
-    minFloors: 3, maxFloors: 7, widthMin: 6, widthSpan: 4, depthMin: 6, depthSpan: 4,
+    minFloors: 7, maxFloors: 20, widthMin: 6, widthSpan: 4, depthMin: 6, depthSpan: 4,
     parkRadius: 12, treeCount: 16,
   },
 };
@@ -292,7 +306,7 @@ function Building({
 }) {
   const worldTime = useGameStore((s) => s.worldTime);
   const isNight = worldTime < 6 || worldTime >= 19.5;
-  const floorH = style === "shop" ? 3.2 : 3.0;
+  const floorH = style === "shop" ? 3.6 : 3.4;
   const h = floors * floorH;
   const bodyColor =
     style === "brick" ? "#a0524d" :
@@ -426,7 +440,7 @@ export function City() {
         if (Math.abs(x) < ROAD_HALF + 3 || Math.abs(z) < ROAD_HALF + 3) continue;
 
         const r = rand(seed + idx * 17);
-        const floors = layout.minFloors + Math.floor(r * (mobile ? Math.min(floorSpan, 4) : floorSpan));
+        const floors = layout.minFloors + Math.floor(r * (mobile ? Math.min(floorSpan, 12) : floorSpan));
         // Lot size stays inside the block (leave sidewalk margin)
         const maxLot = GRID - ROAD_HALF * 2 - 1.5;
         const width = Math.min(maxLot, layout.widthMin + rand(seed + idx * 3) * layout.widthSpan);
@@ -549,6 +563,7 @@ export function City() {
 
       {/* Main avenues: Kenney road tiles, falling back to the original flat asphalt + markings. */}
       <InstancedTiles url={MODELS.roadStraight} tiles={AVENUE_TILES} size={AVENUE_TILE} fallback={oldAvenue} />
+      <InstancedTiles url={MODELS.roadStraight} tiles={LOCAL_STREET_TILES} size={AVENUE_TILE} fallback={null} />
       <ModelOrFallback
         url={MODELS.roadCrossroad}
         fit={{ width: AVENUE_TILE, depth: AVENUE_TILE, mode: "stretch" }}
